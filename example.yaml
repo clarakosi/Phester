@@ -1,0 +1,21 @@
+suite: TestActionQuery
+description: Testing action=query
+type: RPC
+
+tests:
+  - description: Get information about Main Page
+    interaction:
+      request:
+        method: get
+        path: /w/api.php
+        query:
+          action: query
+          prop: info
+          titles: Main Page
+          format: json
+        headers:
+          accept: application/json
+      response:
+        status: 200
+        headers:
+          content-type: application/json

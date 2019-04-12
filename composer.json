@@ -1,0 +1,23 @@
+{
+    "require": {
+        "symfony/console": "^4.2",
+        "symfony/yaml": "^4.2",
+        "guzzlehttp/guzzle": "^6.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "API\\": "src"
+        }
+    },
+    "require-dev": {
+        "mediawiki/mediawiki-codesniffer": "25.0.0",
+        "jakub-onderka/php-parallel-lint": "^1.0"
+    },
+    "scripts": {
+        "test": [
+            "parallel-lint . --exclude vendor",
+            "phpcs -p -s"
+        ],
+        "fix": "phpcbf"
+    }
+}
