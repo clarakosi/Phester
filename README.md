@@ -26,7 +26,7 @@ API testing framework
 - Run `composer fix`
 
 ### Usage
-`./phester.php test <file_name> <base_uri>`
+`./phester.php test <base_uri> <file_name> <another_file_name> ...`
 
 ##### Example: 
-`./phester.php test example.yaml https://www.mediawiki.org`
+`./phester.php test https://www.mediawiki.org example.yaml`

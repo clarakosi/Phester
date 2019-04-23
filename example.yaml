@@ -1,11 +1,11 @@
 suite: TestActionQuery
-description: Testing action=query
+description: Testing ActionAPI
 type: RPC
 
 tests:
   - description: Get information about Main Page
     interaction:
-      request:
+      - type: request
         method: get
         path: /w/api.php
         query:
@@ -15,7 +15,42 @@ tests:
           format: json
         headers:
           accept: application/json
-      response:
+      - type: response
         status: 200
         headers:
-          content-type: application/json
+          content-type: !pcre/pattern: /application\/json/
+        body: !pcre/pattern: /.+/
+      - type: request
+        method: get
+        path: /w/api.php
+        query:
+          action: query
+          prop: revisions
+          titles: API|Main Page
+          rvslots: "*"
+          rvprop: timestamp|user|comment|content
+          format: json
+  - description: Get image info
+    interaction:
+      - type: request
+        method: post
+        path: /w/api.php
+        form-data:
+          action: query
+          prop: images
+          titles: Main Page
+          format: json
+        headers:
+          content-type: application/x-www-form-urlencoded
+      - type: response
+        status: 200
+        headers:
+          content-type: !pcre/pattern: /application\/json/
+        body:
+          batchcomplete: ""
+          query:
+            pages:
+              1423:
+                pageid: 1423
+                ns: 0
+                title: Main Page
