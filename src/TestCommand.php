@@ -87,12 +87,13 @@ class TestCommand extends SymfonyCommand {
 			$interaction = $test['interaction'];
 
 			for ( $i = 0; $i < count( $interaction ); $i++ ) {
-				if ( $interaction[$i]['type'] == 'request' ) {
-					if ( $interaction[$i + 1]['type'] == 'response' ) {
+				if ( array_key_exists( 'request', $interaction[$i] ) ) {
+					if ( is_array( $interaction[$i + 1] ) &&
+						array_key_exists( 'response', $interaction[$i + 1] ) ) {
 						$this->executeRequest( $interaction[$i], $interaction[$i + 1], $description );
 						$i += 1;
 					} else {
-						$response = [ 'type' => 'response', 'status' => 200 ];
+						$response = [ 'response' => '', 'status' => 200 ];
 						$this->executeRequest( $interaction[$i], $response, $description );
 					}
 				}
@@ -108,36 +109,98 @@ class TestCommand extends SymfonyCommand {
 	 * @param $description
 	 */
 	private function executeRequest( $request, $expectedResponse, $description ) {
-		// TODO: Body: Check for files and open
-		// http://docs.guzzlephp.org/en/stable/request-options.html;
-
+		$request = array_change_key_case( $request, CASE_LOWER );
 		$path = $request['path'] ? $request['path'] : '';
+		$method = strtolower( $request['method'] );
 		$payload = [];
 
-		foreach ( $request as $key => $value ) {
-			switch ( strtolower( $key ) ) {
-				case 'body':
-					$payload['body'] = $value;
-					break;
-				case 'form-data':
-					$payload['form_params'] = $value;
-					break;
-				case 'headers':
-					$payload['headers'] = $value;
-					break;
-				case 'json':
-					$payload['json'] = $value;
-					break;
-				case 'query':
-					$payload['query'] = $value;
-					break;
-				default:
-					break;
+		if ( $method === 'post' || $method === 'put' ) {
+			if ( array_key_exists( 'form-data', $request ) ) {
+				if ( is_array( $request['form-data'] ) ) {
+					$payload = $this->getFormDataPayload( $request, 'form-data' );
+				} else {
+					// TODO: Handle Error; Form-data must be an array
+				}
+			} elseif ( array_key_exists( 'body', $request ) ) {
+				$payload = $this->getBodyPayload( $request );
 			}
 		}
 
-		$response = $this->client->request( $request['method'], $this->base_uri . $path, $payload );
+		if ( array_key_exists( 'parameters', $request ) ) {
+			$payload['query'] = $request['parameters'];
+		}
+
+		if ( array_key_exists( 'headers', $request ) &&
+			$request['headers']['content-type'] !== 'multipart/form-data' ) {
+			$payload['headers'] = $request['headers'];
+		}
+
+		$response = $this->client->request( $method, $this->base_uri . $path, $payload );
 		$this->compareResponses( $expectedResponse, $response, $description );
+	}
+
+	/**
+	 * Converts a request's form-data to the proper Guzzle payload
+	 * @param $request
+	 * @param $from
+	 * @return array
+	 */
+	private function getFormDataPayload( $request, $from ) {
+		$payload = [];
+
+		if ( array_key_exists( 'headers', $request ) && is_array( $request['headers'] )
+			&& strtolower( $request['headers']['content-type'] ) === 'multipart/form-data' ) {
+
+			$multipart = [];
+			foreach ( $request[$from] as $key => $value ) {
+				$multipart[] = [ 'name' => $key, 'contents' => $value ];
+			}
+
+			$payload['multipart'] = $multipart;
+
+			$filtered = array_filter( $request['headers'], function ( $key ) {
+				return $key !== 'content-type';
+			},
+				ARRAY_FILTER_USE_KEY
+			);
+
+			if ( $filtered ) {
+				$payload['headers'] = $filtered;
+			}
+		} else {
+			$payload['form_params'] = $request[$from];
+		}
+
+		return $payload;
+	}
+
+	/**
+	 * Converts a request's body to the proper Guzzle payload
+	 * @param $request
+	 * @return array
+	 */
+	private function getBodyPayload( $request ) {
+		$payload = [];
+
+		if ( is_array( $request['body'] ) ) {
+			if ( array_key_exists( 'headers', $request ) && is_array( $request['headers'] ) ) {
+				$headers = array_change_key_case( $request['headers'], CASE_LOWER );
+				if ( strtolower( $headers['content-type'] ) === 'multipart/form-data'
+					|| strtolower( $headers['content-type'] ) === 'application/x-www-form-urlencoded' ) {
+					$payload = $this->getFormDataPayload( $request, 'body' );
+				} else {
+					$payload['json'] = $request['body'];
+				}
+			} else {
+				$payload['json'] = $request['body'];
+			}
+		} elseif ( is_string( $request['body'] ) ) {
+			$payload['body'] = $request['body'];
+		} else {
+			// TODO: Handle error (body can only accept object or string)
+		}
+
+		return $payload;
 	}
 
 	/**
@@ -206,7 +269,7 @@ class TestCommand extends SymfonyCommand {
 	 */
 	private function compareArrays( $array1, $array2 ) {
 		foreach ( $array1 as $key => $value ) {
-			if ( array_key_exists( $key, $array2 ) ) {
+			if ( is_array( $array2 ) && array_key_exists( $key, $array2 ) ) {
 				if ( is_array( $value ) ) {
 					if ( is_array( $array2[$key] ) ) {
 						return $this->compareArrays( $value, $array2[$key] );

@@ -5,25 +5,25 @@ type: RPC
 tests:
   - description: Get information about Main Page
     interaction:
-      - type: request
+      - request:
         method: get
         path: /w/api.php
-        query:
+        parameters:
           action: query
           prop: info
           titles: Main Page
           format: json
         headers:
           accept: application/json
-      - type: response
+      - response:
         status: 200
         headers:
           content-type: !pcre/pattern: /application\/json/
         body: !pcre/pattern: /.+/
-      - type: request
+      - request:
         method: get
         path: /w/api.php
-        query:
+        parameters:
           action: query
           prop: revisions
           titles: API|Main Page
@@ -32,7 +32,7 @@ tests:
           format: json
   - description: Get image info
     interaction:
-      - type: request
+      - request:
         method: post
         path: /w/api.php
         form-data:
@@ -41,8 +41,9 @@ tests:
           titles: Main Page
           format: json
         headers:
-          content-type: application/x-www-form-urlencoded
-      - type: response
+          content-type: multipart/form-data
+          accept: application/json
+      - response:
         status: 200
         headers:
           content-type: !pcre/pattern: /application\/json/
