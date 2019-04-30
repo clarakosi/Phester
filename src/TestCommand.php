@@ -71,8 +71,9 @@ class TestCommand extends SymfonyCommand {
 		// TODO: Handle directories
 
 		foreach ( $file_path as $file ) {
-			// TODO: Handle Setup && variables
+			// TODO: Handle variables
 			$results = Yaml::parseFile( $file, Yaml::PARSE_CUSTOM_TAGS );
+			$this->runTests( $results['setup'] );
 			$this->runTests( $results['tests'] );
 		}
 	}
@@ -270,11 +271,8 @@ class TestCommand extends SymfonyCommand {
 	private function compareArrays( $array1, $array2 ) {
 		foreach ( $array1 as $key => $value ) {
 			if ( is_array( $array2 ) && array_key_exists( $key, $array2 ) ) {
-				if ( is_array( $value ) ) {
-					if ( is_array( $array2[$key] ) ) {
-						return $this->compareArrays( $value, $array2[$key] );
-					}
-					return false;
+				if ( is_array( $value ) && is_array( $array2[$key] ) ) {
+					return $this->compareArrays( $value, $array2[$key] );
 				} else {
 					if ( $value !== $array2[$key] ) {
 						return false;
