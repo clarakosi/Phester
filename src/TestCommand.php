@@ -30,11 +30,6 @@ class TestCommand extends SymfonyCommand {
 	private $output;
 
 	/**
-	 * @var array output for each test suite
-	 */
-	private $testSuiteOutput = [];
-
-	/**
 	 * @var LoggerInterface
 	 */
 	private $logger;
@@ -95,16 +90,16 @@ class TestCommand extends SymfonyCommand {
 		foreach ( $file_paths as $file ) {
 			// TODO: Handle variables
 			$results = Yaml::parseFile( $file, Yaml::PARSE_CUSTOM_TAGS );
-			$this->runTests( $results['setup'] );
-			$this->runTests( $results['tests'] );
-
-			//TODO: should not output if error logged
-			if ( !empty( $this->testSuiteOutput ) ) {
-				array_unshift( $this->testSuiteOutput, "\nTest: " . $results['suite'],
-					"Description: " . $results['description'] );
-				$this->output->writeln( $this->testSuiteOutput );
-				$this->testSuiteOutput = [];
+			if ( isset( $results['setup'] ) ) {
+				$this->runTests( $results['setup'] );
 			}
+
+			if ( isset( $results['tests'] ) ) {
+				$this->runTests( $results['tests'] );
+			} else {
+				$this->logger->error( "Test suites must have the 'test' keyword" );
+			}
+
 		}
 	}
 
@@ -118,19 +113,16 @@ class TestCommand extends SymfonyCommand {
 			$description = $test['description'];
 			$interaction = $test['interaction'];
 
-			for ( $i = 0; $i < count( $interaction ); $i++ ) {
-				if ( array_key_exists( 'request', $interaction[$i] ) ) {
-					if ( is_array( $interaction[$i + 1] ) &&
-						array_key_exists( 'response', $interaction[$i + 1] ) ) {
-						$this->executeRequest( $interaction[$i], $interaction[$i + 1], $description );
-						$i += 1;
+			foreach ( $interaction as $rrPair ) {
+				if ( isset( $rrPair['request'] ) ) {
+					if ( isset( $rrPair['response'] ) ) {
+						$this->executeRequest( $rrPair['request'], $rrPair['response'], $description );
 					} else {
-						$response = [ 'response' => '', 'status' => 200 ];
-						$this->executeRequest( $interaction[$i], $response, $description );
+						$this->executeRequest( $rrPair['request'], [ 'status' => 200 ], $description );
 					}
 				} else {
 					$this->logger->error( "Expected 'request' key in object but instead found the following
-					object:", [ json_encode( $interaction[$i] ) ] );
+					object:", [ json_encode( $rrPair ) ] );
 					return;
 				}
 			}
@@ -151,23 +143,23 @@ class TestCommand extends SymfonyCommand {
 		$payload = [];
 
 		if ( $method === 'post' || $method === 'put' ) {
-			if ( array_key_exists( 'form-data', $request ) ) {
+			if ( isset( $request['form-data'] ) ) {
 				if ( is_array( $request['form-data'] ) ) {
 					$payload = $this->getFormDataPayload( $request, 'form-data' );
 				} else {
 					$this->logger->error( 'form-data must be an object' );
 					return;
 				}
-			} elseif ( array_key_exists( 'body', $request ) ) {
+			} elseif ( isset( $request['body'] ) ) {
 				$payload = $this->getBodyPayload( $request );
 			}
 		}
 
-		if ( array_key_exists( 'parameters', $request ) ) {
+		if ( isset( $request['parameters'] ) ) {
 			$payload['query'] = $request['parameters'];
 		}
 
-		if ( array_key_exists( 'headers', $request ) &&
+		if ( isset( $request['headers'] ) &&
 			$request['headers']['content-type'] !== 'multipart/form-data' ) {
 			$payload['headers'] = $request['headers'];
 		}
@@ -185,7 +177,7 @@ class TestCommand extends SymfonyCommand {
 	private function getFormDataPayload( $request, $from ) {
 		$payload = [];
 
-		if ( array_key_exists( 'headers', $request ) && is_array( $request['headers'] )
+		if ( isset( $request['headers'] ) && is_array( $request['headers'] )
 			&& strtolower( $request['headers']['content-type'] ) === 'multipart/form-data' ) {
 
 			$multipart = [];
@@ -195,14 +187,11 @@ class TestCommand extends SymfonyCommand {
 
 			$payload['multipart'] = $multipart;
 
-			$filtered = array_filter( $request['headers'], function ( $key ) {
-				return $key !== 'content-type';
-			},
-				ARRAY_FILTER_USE_KEY
-			);
+			$headers = $request['headers'];
+			unset( $headers['content-type'] );
 
-			if ( $filtered ) {
-				$payload['headers'] = $filtered;
+			if ( !empty( $headers ) ) {
+				$payload['headers'] = $headers;
 			}
 		} else {
 			$payload['form_params'] = $request[$from];
@@ -220,7 +209,7 @@ class TestCommand extends SymfonyCommand {
 		$payload = [];
 
 		if ( is_array( $request['body'] ) ) {
-			if ( array_key_exists( 'headers', $request ) && is_array( $request['headers'] ) ) {
+			if ( isset( $request['headers'] ) && is_array( $request['headers'] ) ) {
 				$headers = array_change_key_case( $request['headers'], CASE_LOWER );
 				if ( strtolower( $headers['content-type'] ) === 'multipart/form-data'
 					|| strtolower( $headers['content-type'] ) === 'application/x-www-form-urlencoded' ) {
@@ -263,14 +252,12 @@ class TestCommand extends SymfonyCommand {
 
 					if ( is_array( $value ) ) {
 						if ( !$this->compareArrays( $value, json_decode( $body, true ) ) ) {
-							array_push( $this->testSuiteOutput, "\t$description failed, expected:"
+							$this->output->writeln( "$description failed, expected:"
 								. json_encode( $value ) . " actual: $body" );
 						}
 					} else {
 						$this->assertDeepEqual( $value, $body, $description );
 					}
-					break;
-				case 'response':
 					break;
 				default:
 					$this->logger->warning( "$key is not supported in the response object" );
@@ -309,7 +296,7 @@ class TestCommand extends SymfonyCommand {
 	 */
 	private function compareArrays( $array1, $array2 ) {
 		foreach ( $array1 as $key => $value ) {
-			if ( is_array( $array2 ) && array_key_exists( $key, $array2 ) ) {
+			if ( is_array( $array2 ) && isset( $array2[$key] ) ) {
 				if ( is_array( $value ) && is_array( $array2[$key] ) ) {
 					return $this->compareArrays( $value, $array2[$key] );
 				} else {
