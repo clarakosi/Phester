@@ -1,5 +1,6 @@
 <?php namespace API;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -13,20 +14,39 @@ use GuzzleHttp\Client;
  * @package API
  */
 class TestCommand extends SymfonyCommand {
-	/** @var string URI to be tested against */
+	/**
+	 * @var string URI to be tested against
+	 */
 	private $base_uri;
 
-	/** @var object HTTP client */
+	/**
+	 * @var Client
+	 */
 	private $client;
 
-	/** @var object Output Interface that logs to console*/
+	/**
+	 * @var OutputInterface logs to console
+	 */
 	private $output;
 
 	/**
-	 * TestCommand constructor.
+	 * @var array output for each test suite
 	 */
-	public function __construct() {
+	private $testSuiteOutput = [];
+
+	/**
+	 * @var LoggerInterface
+	 */
+	private $logger;
+
+	/**
+	 * TestCommand constructor.
+	 * @param LoggerInterface $logger
+	 */
+	public function __construct( LoggerInterface $logger ) {
 		parent::__construct();
+
+		$this->logger = $logger;
 	}
 
 	/**
@@ -45,7 +65,8 @@ class TestCommand extends SymfonyCommand {
 	 * Executes the current command
 	 * @param InputInterface $input
 	 * @param OutputInterface $output
-	 * @return int|void|null if everything went well
+	 * @return int|void|null
+	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 */
 	public function execute( InputInterface $input, OutputInterface $output ) {
 		$this->base_uri = $input->getArgument( 'base_uri' );
@@ -65,22 +86,32 @@ class TestCommand extends SymfonyCommand {
 
 	/**
 	 * Parses a Yaml file to an Array
-	 * @param $file_path
+	 * @param $file_paths
+	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 */
-	private function getYaml( $file_path ) {
+	private function getYaml( $file_paths ) {
 		// TODO: Handle directories
 
-		foreach ( $file_path as $file ) {
+		foreach ( $file_paths as $file ) {
 			// TODO: Handle variables
 			$results = Yaml::parseFile( $file, Yaml::PARSE_CUSTOM_TAGS );
 			$this->runTests( $results['setup'] );
 			$this->runTests( $results['tests'] );
+
+			//TODO: should not output if error logged
+			if ( !empty( $this->testSuiteOutput ) ) {
+				array_unshift( $this->testSuiteOutput, "\nTest: " . $results['suite'],
+					"Description: " . $results['description'] );
+				$this->output->writeln( $this->testSuiteOutput );
+				$this->testSuiteOutput = [];
+			}
 		}
 	}
 
 	/**
 	 * Runs the given tests
 	 * @param $tests
+	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 */
 	private function runTests( $tests ) {
 		foreach ( $tests as $test ) {
@@ -97,8 +128,11 @@ class TestCommand extends SymfonyCommand {
 						$response = [ 'response' => '', 'status' => 200 ];
 						$this->executeRequest( $interaction[$i], $response, $description );
 					}
+				} else {
+					$this->logger->error( "Expected 'request' key in object but instead found the following
+					object:", [ json_encode( $interaction[$i] ) ] );
+					return;
 				}
-				// TODO: Handle error
 			}
 		}
 	}
@@ -108,6 +142,7 @@ class TestCommand extends SymfonyCommand {
 	 * @param $request
 	 * @param $expectedResponse
 	 * @param $description
+	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 */
 	private function executeRequest( $request, $expectedResponse, $description ) {
 		$request = array_change_key_case( $request, CASE_LOWER );
@@ -120,7 +155,8 @@ class TestCommand extends SymfonyCommand {
 				if ( is_array( $request['form-data'] ) ) {
 					$payload = $this->getFormDataPayload( $request, 'form-data' );
 				} else {
-					// TODO: Handle Error; Form-data must be an array
+					$this->logger->error( 'form-data must be an object' );
+					return;
 				}
 			} elseif ( array_key_exists( 'body', $request ) ) {
 				$payload = $this->getBodyPayload( $request );
@@ -198,7 +234,8 @@ class TestCommand extends SymfonyCommand {
 		} elseif ( is_string( $request['body'] ) ) {
 			$payload['body'] = $request['body'];
 		} else {
-			// TODO: Handle error (body can only accept object or string)
+			$this->logger->error( 'body can only accept an object or string' );
+			return;
 		}
 
 		return $payload;
@@ -226,15 +263,17 @@ class TestCommand extends SymfonyCommand {
 
 					if ( is_array( $value ) ) {
 						if ( !$this->compareArrays( $value, json_decode( $body, true ) ) ) {
-							$this->output->writeln( "$description failed, expected:"
+							array_push( $this->testSuiteOutput, "\t$description failed, expected:"
 								. json_encode( $value ) . " actual: $body" );
 						}
 					} else {
 						$this->assertDeepEqual( $value, $body, $description );
 					}
 					break;
+				case 'response':
+					break;
 				default:
-					// TODO: Handle default, error
+					$this->logger->warning( "$key is not supported in the response object" );
 					break;
 			}
 		}

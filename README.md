@@ -8,7 +8,9 @@ API testing framework
 - PHP
 - symfony/Console
 - symfony/yaml
+- symfony/monolog-bundle
 - guzzlehttp/guzzle
+- psr/log
 
 #### Dev dependencies:
 - mediawiki/mediawiki-codesniffer
