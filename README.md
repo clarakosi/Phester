@@ -5,12 +5,13 @@ API testing framework
 
 ### Technologies (so far):
 #### Required Dependencies:
-- PHP
-- symfony/Console
-- symfony/yaml
-- symfony/monolog-bundle
+- php
+- ext-json
 - guzzlehttp/guzzle
 - psr/log
+- symfony/console
+- symfony/monolog-bundle
+- symfony/yaml
 
 #### Dev dependencies:
 - mediawiki/mediawiki-codesniffer
