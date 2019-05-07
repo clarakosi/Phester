@@ -44,11 +44,11 @@ class TestSuite {
 		$this->client = new Client();
 	}
 
-    /**
-     * Runs test suite
-     * @return array|void
-     * @throws GuzzleException
-     */
+	/**
+	 * Runs test suite
+	 * @return array|void
+	 * @throws GuzzleException
+	 */
 	public function run() {
 		$output = [];
 		if ( $this->testSuite->has( 'setup' ) ) {
@@ -83,12 +83,12 @@ class TestSuite {
 		return $output;
 	}
 
-    /**
-     * Runs the given tests
-     * @param $tests
-     * @return array|void
-     * @throws GuzzleException
-     */
+	/**
+	 * Runs the given tests
+	 * @param $tests
+	 * @return array|void
+	 * @throws GuzzleException
+	 */
 	private function runTests( $tests ) {
 		$output = [];
 		foreach ( $tests as $test ) {
@@ -111,13 +111,13 @@ class TestSuite {
 		return $output;
 	}
 
-    /**
-     * Runs the interactions
-     * @param array $interaction
-     * @param string $description
-     * @return array|void
-     * @throws GuzzleException
-     */
+	/**
+	 * Runs the interactions
+	 * @param array $interaction
+	 * @param string $description
+	 * @return array|void
+	 * @throws GuzzleException
+	 */
 	private function runInteraction( $interaction, $description ) {
 		$output = [];
 		foreach ( $interaction as $rrPair ) {
@@ -133,7 +133,7 @@ class TestSuite {
 				}
 			} else {
 				$this->logger->error( "Expected 'request' key in object but instead found the following
-                        object:", [ $rrPair ->arrayToString() ] );
+                        object:", [ $rrPair->arrayToString() ] );
 				return;
 			}
 		}
@@ -296,13 +296,13 @@ class TestSuite {
 		return $output;
 	}
 
-    /**
-     * Compares two values
-     * @param string|object $expected
-     * @param string $actual
-     * @param string $message
-     * @return string|void
-     */
+	/**
+	 * Compares two values
+	 * @param string|object $expected
+	 * @param string $actual
+	 * @param string $message
+	 * @return string|void
+	 */
 	private function assertDeepEqual( $expected, $actual, $message ) {
 		if ( is_object( $expected ) ) {
 			$pattern = $expected->getValue();
@@ -315,7 +315,6 @@ class TestSuite {
 				return "\t$message failed, expected: $expected, actual: $actual";
 			}
 		}
-		return;
 	}
 
 	/**

@@ -75,15 +75,15 @@ class ArrayUtils {
 	}
 
 	/**
-     * Converts array to string
+	 * Converts array to string
 	 * @return array
 	 */
 	public function arrayToString() {
-		return json_encode($this->array);
+		return json_encode( $this->array );
 	}
 
 	/**
-     * Gets the $key's value in lowercase
+	 * Gets the $key's value in lowercase
 	 * @param string $key
 	 * @return string|null
 	 */

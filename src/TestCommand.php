@@ -32,13 +32,13 @@ class TestCommand extends SymfonyCommand {
 				'Path to the test yaml file' );
 	}
 
-    /**
-     * Executes the current command
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     * @return int|void|null
-     * @throws GuzzleException
-     */
+	/**
+	 * Executes the current command
+	 * @param InputInterface $input
+	 * @param OutputInterface $output
+	 * @return int|void|null
+	 * @throws GuzzleException
+	 */
 	public function execute( InputInterface $input, OutputInterface $output ) {
 		$base_uri = $input->getArgument( 'base_uri' );
 		$helper = $this->getHelper( 'question' );
