@@ -3,21 +3,19 @@ description: Testing ActionAPI
 type: RPC
 
 setup:
-  - description: Validate a password
-    interaction:
-      - request:
-          method: post
-          path: /w/api.php
-          parameters:
-            action: validatepassword
-            format: json
-          form-data:
-            password: foobarbaz
-        response:
-          status: 200
-          headers:
-            content-type: !pcre/pattern: /application\/json/
-          body: !pcre/pattern: /"validity":"Good"/
+  - request:
+      method: post
+      path: /w/api.php
+      parameters:
+        action: validatepassword
+        format: json
+      form-data:
+        password: foobarbaz
+    response:
+      status: 200
+      headers:
+        content-type: !pcre/pattern: /application\/json/
+      body: !pcre/pattern: /"validity":"Good"/
 
 tests:
   - description: Get information about Main Page
