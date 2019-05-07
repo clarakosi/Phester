@@ -1,14 +1,15 @@
-<?php namespace API;
+<?php namespace Wikimedia\Phester;
 
 use GuzzleHttp\Psr7\Response;
 use Psr\Log\LoggerInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Bridge\Monolog\Logger;
+use Symfony\Component\Yaml\Tag\TaggedValue;
 
 /**
  * Class TestSuite
- * @package API
+ * @package Wikimedia\Phester
  */
 class TestSuite {
 	/**
@@ -27,18 +28,18 @@ class TestSuite {
 	private $base_uri;
 
 	/**
-	 * @var ArrayUtils test suite information
+	 * @var Instructions test suite information
 	 */
-	private $testSuite;
+	private $suiteData;
 
 	/**
 	 * TestSuite constructor
 	 * @param string $base_uri
-	 * @param ArrayUtils $testSuite
+	 * @param Instructions $suiteData
 	 */
-	public function __construct( $base_uri, $testSuite ) {
+	public function __construct( $base_uri, Instructions $suiteData ) {
 		$this->base_uri = $base_uri;
-		$this->testSuite = $testSuite;
+		$this->suiteData = $suiteData;
 
 		$this->logger = new Logger( "Phester" );
 		$this->client = new Client();
@@ -46,23 +47,29 @@ class TestSuite {
 
 	/**
 	 * Runs test suite
-	 * @return array|void
+	 * @return array|void errors from test suite
 	 * @throws GuzzleException
 	 */
 	public function run() {
 		$output = [];
-		if ( $this->testSuite->has( 'setup' ) ) {
-			$errors = $this->runInteraction( $this->testSuite->get( 'setup' ), "Test Setup" );
 
-			if ( !empty( $errors ) ) {
+		if ( !$this->suiteData->has( 'suite' ) || !$this->suiteData->has( 'description' ) ) {
+			$this->logger->error( "Test suite must include 'suite' and 'description'" );
+			return;
+		}
+
+		if ( $this->suiteData->has( 'setup' ) ) {
+			$errors = $this->runInteraction( $this->suiteData->get( 'setup' ), "Test Setup" );
+
+			if ( $errors ) {
 				$output = array_merge( $output, $errors );
 			}
 		}
 
-		if ( $this->testSuite->has( 'tests' ) ) {
-			$errors = $this->runTests( $this->testSuite->get( 'tests' ) );
+		if ( $this->suiteData->has( 'tests' ) ) {
+			$errors = $this->runTests( $this->suiteData->get( 'tests' ) );
 
-			if ( !empty( $errors ) ) {
+			if ( $errors ) {
 				$output = array_merge( $output, $errors );
 			}
 		} else {
@@ -70,29 +77,24 @@ class TestSuite {
 			return;
 		}
 
-		if ( !empty( $output ) ) {
-			if ( !$this->testSuite->has( 'suite' ) || !$this->testSuite->has( 'description' ) ) {
-				$this->logger->error( "Test suite must include 'suite' and 'description'" );
-				return;
-			}
-
-			array_unshift( $output, "\nTest: " . $this->testSuite->get( 'suite' ),
-				"Description: " . $this->testSuite->get( 'description' ) );
+		if ( $output ) {
+			array_unshift( $output, "\nTest: " . $this->suiteData->get( 'suite' ),
+				"Description: " . $this->suiteData->get( 'description' ) );
 		}
 
 		return $output;
 	}
 
 	/**
-	 * Runs the given tests
-	 * @param $tests
-	 * @return array|void
+	 * Runs the given tests from YAML
+	 * @param Instructions $tests
+	 * @return array|void errors from tests
 	 * @throws GuzzleException
 	 */
 	private function runTests( $tests ) {
 		$output = [];
-		foreach ( $tests as $test ) {
-			$test = new ArrayUtils( $test );
+		foreach ( $tests->getArray() as $test ) {
+			$test = new Instructions( $test );
 
 			if ( !$test->has( 'description' ) || !$test->has( 'interaction' ) ) {
 				$this->logger->error( "Test must include 'description' and 'interaction'" );
@@ -104,7 +106,7 @@ class TestSuite {
 
 			$errors = $this->runInteraction( $interaction, $description );
 
-			if ( !empty( $errors ) ) {
+			if ( $errors ) {
 				$output = array_merge( $output, $errors );
 			}
 		}
@@ -112,23 +114,24 @@ class TestSuite {
 	}
 
 	/**
-	 * Runs the interactions
-	 * @param array $interaction
-	 * @param string $description
-	 * @return array|void
+	 * Runs the interaction(s) from setup or interaction section under tests in YAML
+	 * @param Instructions $interaction
+	 * @param string $description of test or setup
+	 * @return array|void errors from interaction
 	 * @throws GuzzleException
 	 */
 	private function runInteraction( $interaction, $description ) {
 		$output = [];
-		foreach ( $interaction as $rrPair ) {
-			$rrPair = new ArrayUtils( $rrPair );
+		foreach ( $interaction->getArray() as $rrPair ) {
+			$rrPair = new Instructions( $rrPair );
 			if ( $rrPair->has( 'request' ) ) {
-				$expected = $rrPair->get( 'response' ) ?? [];
+				$response = $rrPair->get( 'response' );
+				$expected = $response instanceof Instructions ? $response->getArray() : [];
 				$expected['status'] = $expected['status'] ?? 200;
 
 				$errors = $this->executeRequest( $rrPair->get( 'request' ), $expected, $description );
 
-				if ( !empty( $errors ) ) {
+				if ( $errors ) {
 					$output = array_merge( $output, $errors );
 				}
 			} else {
@@ -141,15 +144,15 @@ class TestSuite {
 	}
 
 	/**
-	 * Executes Http Requests
-	 * @param array $request
+	 * Executes Http Requests and checks the response against the
+	 * expectations defined in the test suite definition
+	 * @param Instructions $request
 	 * @param array $expectedResponse
-	 * @param string $description
-	 * @return array|void
+	 * @param string $description description of test or setup
+	 * @return array|void comparison errors
 	 * @throws GuzzleException
 	 */
 	private function executeRequest( $request, $expectedResponse, $description ) {
-		$request = new ArrayUtils( array_change_key_case( $request, CASE_LOWER ) );
 		$path = $request->get( 'path', '' );
 		$method = $request->getLowerCase( 'method' );
 		$payload = [];
@@ -168,12 +171,12 @@ class TestSuite {
 		}
 
 		if ( $request->has( 'parameters' ) ) {
-			$payload['query'] = $request->get( 'parameters' );
+			$payload['query'] = $request->get( 'parameters' )->getArray();
 		}
 
 		if ( $request->has( 'headers' ) &&
 			$request->get( [ 'headers', 'content-type' ] ) !== 'multipart/form-data' ) {
-			$payload['headers'] = $request->get( 'headers' );
+			$payload['headers'] = $request->get( 'headers' )->getArray();
 		}
 
 		$response = $this->client->request( $method, $this->base_uri . $path, $payload );
@@ -182,7 +185,7 @@ class TestSuite {
 
 	/**
 	 * Converts a request's form-data to the proper Guzzle payload
-	 * @param ArrayUtils $request
+	 * @param Instructions $request
 	 * @param string $from
 	 * @return array
 	 */
@@ -190,24 +193,27 @@ class TestSuite {
 		$payload = [];
 
 		if ( $request->has( 'headers' ) && $request->hasArray( 'headers' )
-			&& strtolower( $request->get( [ 'headers', 'content-type' ] ) ) === 'multipart/form-data'
+			&& $request->getLowerCase( [ 'headers', 'content-type' ] ) === 'multipart/form-data'
 		) {
 
 			$multipart = [];
-			foreach ( $request->get( $from ) as $key => $value ) {
+			foreach ( $request->get( $from )->getArray() as $key => $value ) {
 				$multipart[] = [ 'name' => $key, 'contents' => $value ];
 			}
 
 			$payload['multipart'] = $multipart;
 
-			$headers = $request->get( 'headers' );
+			$headers = $request->get( 'headers' )->getArray();
+
+			// Guzzle multipart request option does not accept a content-type
+			// header and will throw an error if provided.
 			unset( $headers['content-type'] );
 
-			if ( !empty( $headers ) ) {
+			if ( $headers ) {
 				$payload['headers'] = $headers;
 			}
 		} else {
-			$payload['form_params'] = $request->get( $from );
+			$payload['form_params'] = $request->get( $from )->getArray();
 		}
 
 		return $payload;
@@ -215,7 +221,7 @@ class TestSuite {
 
 	/**
 	 * Converts a request's body to the proper Guzzle payload
-	 * @param ArrayUtils $request
+	 * @param Instructions $request
 	 * @return array|void
 	 */
 	private function getBodyPayload( $request ) {
@@ -223,16 +229,16 @@ class TestSuite {
 
 		if ( $request->hasArray( 'body' ) ) {
 			if ( $request->has( 'headers' ) && $request->hasArray( 'headers' ) ) {
-				$headers = new ArrayUtils( array_change_key_case( $request->get( 'headers' ), CASE_LOWER ) );
+				$headers = $request->get( 'headers' );
 				if ( $headers->getLowerCase( 'content-type' ) === 'multipart/form-data'
 					|| $headers->getLowerCase( 'content-type' ) === 'application/x-www-form-urlencoded'
 				) {
 					$payload = $this->getFormDataPayload( $request, 'body' );
 				} else {
-					$payload['json'] = $request->get( 'body' );
+					$payload['json'] = $request->get( 'body' )->getArray();
 				}
 			} else {
-				$payload['json'] = $request->get( 'body' );
+				$payload['json'] = $request->get( 'body' )->getArray();
 			}
 		} elseif ( is_string( $request->get( 'body' ) ) ) {
 			$payload['body'] = $request->get( 'body' );
@@ -248,7 +254,7 @@ class TestSuite {
 	 * Compares the expected response to the actual response from the API
 	 * @param array $expected
 	 * @param Response $actual
-	 * @param string $description
+	 * @param string $description description of the test
 	 * @return array
 	 */
 	private function compareResponses( $expected, $actual, $description ) {
@@ -256,19 +262,19 @@ class TestSuite {
 		foreach ( $expected as $key => $value ) {
 			switch ( strtolower( $key ) ) {
 				case 'status':
-					$errors = $this->assertDeepEqual( $value, $actual->getStatusCode(), $description );
+					$assertionResult = $this->assertMatch( $value, $actual->getStatusCode(), $description );
 
-					if ( !empty( $errors ) ) {
-						$output[] = $errors;
+					if ( $assertionResult ) {
+						$output[] = $assertionResult;
 					}
 					break;
 				case 'headers':
 					foreach ( $value as $header => $headerVal ) {
-						$errors = $this->assertDeepEqual( $headerVal, $actual->getHeaderLine( $header ),
+						$assertionResult = $this->assertMatch( $headerVal, $actual->getHeaderLine( $header ),
 							$description );
 
-						if ( !empty( $errors ) ) {
-							$output[] = $errors;
+						if ( $assertionResult ) {
+							$output[] = $assertionResult;
 						}
 					};
 					break;
@@ -280,10 +286,10 @@ class TestSuite {
 							$output[] = "\t$description failed, expected:" . json_encode( $value ) . " actual: $body";
 						}
 					} else {
-						$errors = $this->assertDeepEqual( $value, $body, $description );
+						$assertionResult = $this->assertMatch( $value, $body, $description );
 
-						if ( !empty( $errors ) ) {
-							$output[] = $errors;
+						if ( $assertionResult ) {
+							$output[] = $assertionResult;
 						}
 					}
 					break;
@@ -298,18 +304,24 @@ class TestSuite {
 
 	/**
 	 * Compares two values
-	 * @param string|object $expected
+	 * @param string|TaggedValue $expected
 	 * @param string $actual
-	 * @param string $message
+	 * @param string $message test description
 	 * @return string|void
 	 */
-	private function assertDeepEqual( $expected, $actual, $message ) {
-		if ( is_object( $expected ) ) {
-			$pattern = $expected->getValue();
+	private function assertMatch( $expected, $actual, $message ) {
+		if ( $expected instanceof TaggedValue ) {
+			$tagName = $expected->getTag();
 
-			if ( !preg_match( $pattern, $actual ) ) {
-				return "\t$message failed, expected: $pattern, actual: $actual";
-			};
+			if ( strtolower( $tagName ) === 'pcre/pattern:' ) {
+				$pattern = $expected->getValue();
+
+				if ( !preg_match( $pattern, $actual ) ) {
+					return "\t$message failed, expected: $pattern, actual: $actual";
+				};
+			} else {
+				$this->logger->error( "$tagName is not a supported yaml tag." );
+			}
 		} else {
 			if ( $expected !== $actual ) {
 				return "\t$message failed, expected: $expected, actual: $actual";

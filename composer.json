@@ -13,7 +13,8 @@
     },
     "autoload": {
         "psr-4": {
-            "API\\": "src"
+            "Wikimedia\\Phester\\": "src",
+            "Wikimedia\\Phester\\Console\\": "src"
         }
     },
     "require-dev": {

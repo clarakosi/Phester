@@ -1,4 +1,4 @@
-<?php namespace API;
+<?php namespace Wikimedia\Phester\Console;
 
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -7,10 +7,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Yaml\Yaml;
 use GuzzleHttp\Exception\GuzzleException;
+use Wikimedia\Phester\Instructions;
+use Wikimedia\Phester\TestSuite;
 
 /**
  * Class TestCommand
- * @package API
+ * @package Wikimedia\Phester\Console
  */
 class TestCommand extends SymfonyCommand {
 	/**
@@ -53,7 +55,7 @@ class TestCommand extends SymfonyCommand {
 
 		foreach ( $files as $file ) {
 			$results = Yaml::parseFile( $file, Yaml::PARSE_CUSTOM_TAGS );
-			$testSuite = new TestSuite( $base_uri, new ArrayUtils( $results ) );
+			$testSuite = new TestSuite( $base_uri, new Instructions( $results ) );
 
 			// TODO: $testSuiteOutput should be class with methods for formatting as plain text or html or
 			// json
