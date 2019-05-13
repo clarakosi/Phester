@@ -1,5 +1,7 @@
 <?php namespace Wikimedia\Phester\Console;
 
+use GuzzleHttp\Client;
+use Monolog\Logger;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -55,7 +57,9 @@ class TestCommand extends SymfonyCommand {
 
 		foreach ( $files as $file ) {
 			$results = Yaml::parseFile( $file, Yaml::PARSE_CUSTOM_TAGS );
-			$testSuite = new TestSuite( $base_uri, new Instructions( $results ) );
+			$logger = new Logger( "Phester" );
+			$client = new Client( [ 'base_uri' => $base_uri ] );
+			$testSuite = new TestSuite( new Instructions( $results ), $logger, $client );
 
 			// TODO: $testSuiteOutput should be class with methods for formatting as plain text or html or
 			// json

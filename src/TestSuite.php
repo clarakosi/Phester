@@ -4,7 +4,6 @@ use GuzzleHttp\Psr7\Response;
 use Psr\Log\LoggerInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Symfony\Bridge\Monolog\Logger;
 use Symfony\Component\Yaml\Tag\TaggedValue;
 
 /**
@@ -23,26 +22,22 @@ class TestSuite {
 	private $client;
 
 	/**
-	 * @var string URI to be tested against
-	 */
-	private $base_uri;
-
-	/**
 	 * @var Instructions test suite information
 	 */
 	private $suiteData;
 
 	/**
 	 * TestSuite constructor
-	 * @param string $base_uri
 	 * @param Instructions $suiteData
+	 * @param LoggerInterface $logger
+	 * @param Client $client
 	 */
-	public function __construct( $base_uri, Instructions $suiteData ) {
-		$this->base_uri = $base_uri;
+	public function __construct( Instructions $suiteData,
+								 LoggerInterface $logger, Client $client ) {
 		$this->suiteData = $suiteData;
 
-		$this->logger = new Logger( "Phester" );
-		$this->client = new Client();
+		$this->logger = $logger;
+		$this->client = $client;
 	}
 
 	/**
@@ -73,7 +68,7 @@ class TestSuite {
 				$output = array_merge( $output, $errors );
 			}
 		} else {
-			$this->logger->error( "Test suites must have the 'test' keyword" );
+			$this->logger->error( "Test suites must have the 'tests' keyword" );
 			return;
 		}
 
@@ -165,8 +160,12 @@ class TestSuite {
 					$this->logger->error( 'form-data must be an object' );
 					return;
 				}
-			} elseif ( $request->hasArray( 'body' ) ) {
-				$payload = $this->getBodyPayload( $request );
+			} elseif ( $request->has( 'body' ) ) {
+
+				$body = $this->getBodyPayload( $request );
+				if ( $body ) {
+					$payload = $body;
+				}
 			}
 		}
 
@@ -179,7 +178,7 @@ class TestSuite {
 			$payload['headers'] = $request->get( 'headers' )->getArray();
 		}
 
-		$response = $this->client->request( $method, $this->base_uri . $path, $payload );
+		$response = $this->client->request( $method, $path, $payload );
 		return $this->compareResponses( $expectedResponse, $response, $description );
 	}
 

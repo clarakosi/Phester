@@ -14,8 +14,9 @@ API testing framework
 - symfony/yaml
 
 #### Dev dependencies:
-- mediawiki/mediawiki-codesniffer
 - jakub-onderka/php-parallel-lint
+- mediawiki/mediawiki-codesniffer
+- phpunit/phpunit
 
 ### Installation
 - Clone/Download the repo

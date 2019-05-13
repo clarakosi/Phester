@@ -18,14 +18,17 @@
         }
     },
     "require-dev": {
+        "jakub-onderka/php-parallel-lint": "^1.0",
         "mediawiki/mediawiki-codesniffer": "25.0.0",
-        "jakub-onderka/php-parallel-lint": "^1.0"
+        "phpunit/phpunit": "^8"
     },
     "scripts": {
         "test": [
             "parallel-lint . --exclude vendor",
+            "phpunit",
             "phpcs -p -s"
         ],
-        "fix": "phpcbf"
+        "fix": "phpcbf",
+        "cover": "phpunit --coverage-html coverage"
     }
 }

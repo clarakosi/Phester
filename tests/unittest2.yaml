@@ -1,0 +1,91 @@
+suite: UnitTest
+description: Testing unit
+type: RPC
+
+setup:
+  - request:
+      method: post
+      path: /w/api.php
+      parameters:
+        action: validatepassword
+        format: json
+      form-data:
+        password: foobarbaz
+    response:
+      status: 200
+      headers:
+        content-type: !pcre/pattern: /application\/json/
+      body: !pcre/pattern: /"validity":"Good"/
+
+tests:
+  - description: Get information about Main Page
+    interaction:
+      - request:
+          method: get
+          path: /w/api.php
+          parameters:
+            action: query
+            prop: info
+            titles: Main Page
+            format: json
+          headers:
+            accept: application/json
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /.+/
+      - request:
+          method: get
+          path: /w/api.php
+          parameters:
+            action: query
+            prop: revisions
+            titles: API|Main Page
+            rvslots: "*"
+            rvprop: timestamp|user|comment|content
+            format: json
+      - request:
+          method: post
+          path: /w/api.php
+          body: "{
+            'action': 'query'
+            'prop': 'revisions'
+            'titles': 'API|Main Page'
+            'rvprop': 'timestamp|user|comment|content'
+            'format': 'json'
+          }"
+  - description: Get image info form-data
+    interaction:
+      - request:
+          method: post
+          path: /w/api.php
+          form-data:
+            action: query
+            prop: images
+            titles: Main Page
+            format: json
+          headers:
+            content-type: multipart/form-data
+            accept: application/json
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body:
+            batchcomplete: ""
+            query:
+              pages: 1423
+  - description: Get image info using body
+    interaction:
+      - request:
+          method: post
+          path: /w/api.php
+          body:
+            action: query
+            prop: images
+            titles: Main Page
+            format: json
+          headers:
+            content-type: multipart/form-data
+            accept: application/json

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+         colors="true"
+         backupGlobals="false"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         forceCoversAnnotation="true"
+         stopOnFailure="false"
+         timeoutForSmallTests="10"
+         timeoutForMediumTests="30"
+         timeoutForLargeTests="60"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         beStrictAboutOutputDuringTests="true"
+         verbose="false">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests</directory>
+        </testsuite>
+
+    </testsuites>
+
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">./src</directory>
+        </whitelist>
+    </filter>
+
+</phpunit>

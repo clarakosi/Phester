@@ -21,7 +21,7 @@ class Instructions {
 
 	/**
 	 * Checks if $key is set in array
-	 * @param string $key
+	 * @param string|array $key
 	 * @return bool
 	 */
 	public function has( $key ) {
