@@ -4,7 +4,6 @@ use PHPUnit\Framework\TestCase;
 use Wikimedia\Phester\Instructions;
 
 /**
- * Class InstructionsTest
  * @covers \Wikimedia\Phester\Instructions
  */
 class InstructionsTest extends TestCase {
@@ -55,9 +54,15 @@ class InstructionsTest extends TestCase {
 		$this->assertFalse( $this->instructions->has( 'response' ) );
 	}
 
-	public function testGetWithStringInput() {
-		$this->assertEquals( $this->instructions->get( 'request' ),
-			new Instructions( [
+	/**
+	 * Provides input to test Instructions::get
+	 * @return Generator
+	 */
+	public function provideGet() {
+		/**
+		 * format: 'string test description' => ['array input', 'string|array expected value']
+		 */
+		yield 'string input' => [ [ 'request' ], new Instructions( [
 			'method' => 'GET',
 			'path' => '/w/api.php',
 			'parameters' => [
@@ -65,19 +70,21 @@ class InstructionsTest extends TestCase {
 				'prop' => 'info',
 				'titles' => 'Main Page',
 				'format' => 'json'
-			] ] ) );
+			]
+		] ) ];
+		yield 'array input' => [ [ [ 'request', 'method' ] ],'GET' ];
+		yield 'with default' => [ [ 'response', 'none' ],'none' ];
+		yield 'without default' => [ [ [ 'request', 'form-data' ] ], null ];
 	}
 
-	public function testGetWithArrayInput() {
-		$this->assertEquals( $this->instructions->get( [ 'request', 'method' ] ), 'GET' );
-	}
-
-	public function testGetWithDefault() {
-		$this->assertEquals( $this->instructions->get( 'response', 'none' ), 'none' );
-	}
-
-	public function testGetWithoutDefault() {
-		$this->assertEquals( $this->instructions->get( [ 'request', 'form-data' ] ), null );
+	/**
+	 * Test Instructions::get
+	 * @dataProvider provideGet
+	 * @param string|array $expected
+	 * @param array $input
+	 */
+	public function testGet( $input, $expected ) {
+		$this->assertEquals( $this->instructions->get( ...$input ), $expected );
 	}
 
 	public function testHasArrayWithSetKey() {

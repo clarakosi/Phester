@@ -10,12 +10,12 @@ setup:
         action: validatepassword
         format: json
       form-data:
-        password: foobarbaz
+        password: foobar
     response:
       status: 200
       headers:
-        content-type: !pcre/pattern: /application\/json/
-      body: !pcre/pattern: /"validity":"Good"/
+        content-type: !pcre/pattern: /text/
+      body: "{\"validity\":\"Good\"}"
 
 tests:
   - description: Get information about Main Page
@@ -30,32 +30,7 @@ tests:
             format: json
           headers:
             accept: application/json
-        response:
-          status: 200
-          headers:
-            content-type: !pcre/pattern: /application\/json/
-          body: !pcre/pattern: /.+/
-      - request:
-          method: get
-          path: /w/api.php
-          parameters:
-            action: query
-            prop: revisions
-            titles: API|Main Page
-            rvslots: "*"
-            rvprop: timestamp|user|comment|content
-            format: json
-      - request:
-          method: post
-          path: /w/api.php
-          body: "{
-            'action': 'query'
-            'prop': 'revisions'
-            'titles': 'API|Main Page'
-            'rvprop': 'timestamp|user|comment|content'
-            'format': 'json'
-          }"
-  - description: Get image info form-data
+  - description: Get image
     interaction:
       - request:
           method: post
@@ -69,23 +44,9 @@ tests:
             content-type: multipart/form-data
             accept: application/json
         response:
-          status: 200
+          status: 302
           headers:
-            content-type: !pcre/pattern: /application\/json/
+            content-type: !pcre: /application\/jsons/
           body:
-            batchcomplete: ""
-            query:
-              pages: 1423
-  - description: Get image info using body
-    interaction:
-      - request:
-          method: post
-          path: /w/api.php
-          body:
-            action: query
-            prop: images
-            titles: Main Page
-            format: json
-          headers:
-            content-type: multipart/form-data
-            accept: application/json
+            pages:
+              pageid: 143

@@ -12,7 +12,6 @@ use GuzzleHttp\Psr7\Response;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Class TestSuiteTest
  * @covers \Wikimedia\Phester\TestSuite
  */
 class TestSuiteTest extends TestCase {
@@ -40,108 +39,87 @@ class TestSuiteTest extends TestCase {
 
 	/**
 	 * Provides incorrect suite data to be tested against TestSuite::run
-	 * @return array
+	 * @return Generator
 	 */
-	public function runProvider() {
-		/** Format: 'array suite data', 'string expected log message' */
-		return [
-			[ [ 'suite' => 'unit-test' ], "Test suite must include 'suite' and 'description'" ],
-			[ [ 'description' => 'unit test' ], "Test suite must include 'suite' and 'description'" ],
-			[ [ 'suite' => 'unit-test', 'description' => 'unit test' ],
-				"Test suites must have the 'tests' keyword"
-			],
-			[
-				[
-					'suite' => 'unit-test',
-					'description' => 'unit test',
-					'tests' => [ 'description' => 'missing interaction' ]
-				],
-				"Test must include 'description' and 'interaction'"
-			],
-			[
-				[
-					'suite' => 'unit-test',
-					'description' => 'unit test',
-					'setup' => [ [ 'response' => [ 'status' => 200 ] ] ]
-				],
-				"Expected 'request' key in object but instead found the following
-                        object:"
-			],
-			[
-				[
-					'suite' => 'unit-test',
-					'description' => 'unit test',
-					'tests' => [
-						[
-							'description' => 'testing number as form-data',
-							'interaction' => [
-								[
-									'request' => [
-										'method'  => 'post',
-										'path' => '/w/api.php',
-										'form-data' => 200
-									]
-								]
-							]
+	public function provideBadRunData() {
+		/** Format: 'string test description' => ['array suite data', 'string expected log message'] */
 
-						]
-					]
-				],
-				"form-data must be an object"
-			],
-			[
-				[
-					'suite' => 'unit-test',
-					'description' => 'unit test',
-					'tests' => [
-						[
-							'description' => 'testing number as body',
-							'interaction' => [
-								[
-									'request' => [
-										'method'  => 'post',
-										'path' => '/w/api.php',
-										'body' => 22
-									]
-								]
-							]
+		yield 'missing suite description' => [ [ 'suite' => 'unit-test' ],
+			"Test suite must include 'suite' and 'description'" ];
 
-						]
-					]
-				],
-				"body can only accept an object or string"
-			],
-			[
-				[
-					'suite' => 'unit-test',
-					'description' => 'unit test',
-					'tests' => [
-						[
-							'description' => 'testing random key in response',
-							'interaction' => [
-								[
-									'request' => [
-										'method'  => 'post',
-										'path' => '/w/api.php',
-										'body' => '22',
-									],
-									'response' => [
-										'randomKey' => 200
-									]
-								]
-							]
+		yield 'missing suite information' => [ [ 'description' => 'unit test' ],
+			"Test suite must include 'suite' and 'description'" ];
 
-						]
+		yield 'missing tests' => [ [ 'suite' => 'unit-test', 'description' => 'unit test' ],
+			"Test suites must have the 'tests' keyword" ];
+
+		yield 'tests missing interaction' => [ [
+			'suite' => 'unit-test',
+			'description' => 'unit test',
+			'tests' => [ 'description' => 'missing interaction' ] ],
+			"Test must include 'description' and 'interaction'" ];
+
+		yield 'missing request in interaction' => [ [
+			'suite' => 'unit-test',
+			'description' => 'unit test',
+			'setup' => [ [ 'response' => [ 'status' => 200 ] ] ] ],
+			"Expected 'request' key in object but instead found the following
+                        object:" ];
+
+		yield 'unsupported form-data type' => [ [
+			'suite' => 'unit-test',
+			'description' => 'unit test',
+			'tests' => [ [
+				'description' => 'testing number as form-data',
+				'interaction' => [ [
+					'request' => [
+						'method'  => 'post',
+						'path' => '/w/api.php',
+						'form-data' => 200
 					]
-				],
-				"randomkey is not supported in the response object"
-			]
-		];
+				] ]
+
+			] ] ], "form-data must be an object" ];
+
+		yield 'unsupported body type' => [ [
+			'suite' => 'unit-test',
+			'description' => 'unit test',
+			'tests' => [ [
+				'description' => 'testing number as body',
+				'interaction' => [ [
+					'request' => [
+						'method'  => 'post',
+						'path' => '/w/api.php',
+						'body' => 22
+					]
+				] ]
+
+			] ]
+		], "body can only accept an object or string" ];
+
+		yield 'unsupported key in response' => [ [
+			'suite' => 'unit-test',
+			'description' => 'unit test',
+			'tests' => [ [
+				'description' => 'testing random key in response',
+				'interaction' => [ [
+					'request' => [
+						'method'  => 'post',
+						'path' => '/w/api.php',
+						'body' => '22',
+					],
+					'response' => [
+						'randomKey' => 200
+					]
+				] ]
+
+			] ]
+		], "randomkey is not supported in the response object" ];
 	}
 
 	/**
 	 * Test TestSuite::run
-	 * @dataProvider runProvider
+	 * @dataProvider provideBadRunData
 	 * @param array $suiteData
 	 * @param string $expected
 	 * @throws \GuzzleHttp\Exception\GuzzleException
@@ -172,7 +150,7 @@ class TestSuiteTest extends TestCase {
 			new Response( 200, [ 'content-type' => 'application/json' ] )
 		] );
 
-		$data = Yaml::parseFile( __DIR__ . '/unittest2.yaml', Yaml::PARSE_CUSTOM_TAGS );
+		$data = Yaml::parseFile( __DIR__ . '/unittest.yaml', Yaml::PARSE_CUSTOM_TAGS );
 
 		$testsuite = new TestSuite( new Instructions( $data ), $this->logger, $client );
 
@@ -185,10 +163,11 @@ class TestSuiteTest extends TestCase {
 	public function testRunWithFileExpectErrors() {
 		$client = $this->getClient( [
 			new Response( 200, [ 'content-type' => 'application/json' ], "{\"validity\":\"Not Valid\"}" ),
+			new Response( 302, [ 'content-type' => 'application/json' ] ),
 			new Response( 200, [ 'content-type' => 'application/json' ], "{\"pages\":{\"pageids\":142}}" )
 		] );
 
-		$data = Yaml::parseFile( __DIR__ . '/unittest3.yaml', Yaml::PARSE_CUSTOM_TAGS );
+		$data = Yaml::parseFile( __DIR__ . '/unittest2.yaml', Yaml::PARSE_CUSTOM_TAGS );
 
 		$testsuite = new TestSuite( new Instructions( $data ), $this->logger, $client );
 		$run = $testsuite->run();
@@ -200,6 +179,7 @@ class TestSuiteTest extends TestCase {
 			"Description: Testing unit",
 			"\tTest Setup failed, expected: /text/, actual: application/json",
 			"\tTest Setup failed, expected: {\"validity\":\"Good\"}, actual: {\"validity\":\"Not Valid\"}",
+			"\tGet information about Main Page failed, expected: 200, actual: 302",
 			"\tGet image failed, expected: 302, actual: 200",
 			"\tGet image failed, expected:{\"pages\":{\"pageid\":143}} actual: {\"pages\":{\"pageids\":142}}"
 		] );
