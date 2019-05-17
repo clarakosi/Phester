@@ -1,0 +1,97 @@
+# Tested on a local wiki instance with edit and delete permission granted to all users
+#
+#  $wgGroupPermissions['*']['edit'] = true;
+#  $wgGroupPermissions['*']['delete'] = true;
+#
+# TODO: Add variable extraction option to be able to login, get CSRF token, and run tests w/ token
+
+suite: TestAction
+description: Testing page creation, edit, and delete in ActionAPI
+type: RPC
+
+tests:
+  - description: Create a page
+    interaction:
+      - request:
+          method: post
+          path: /w/api.php
+          parameters:
+            action: edit
+            title: phester
+            createonly: true
+            format: json
+          form-data:
+            summary: phester test
+            text: A test page for phester
+            token: +\
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /"result":"Success"/
+      - request:
+          method: get
+          path: /w/api.php
+          parameters:
+            action: parse
+            page: phester
+            format: json
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /A test page for phester/
+  - description: Edit a page
+    interaction:
+      - request:
+          method: post
+          path: /w/api.php
+          parameters:
+            action: edit
+            title: phester
+            format: json
+          form-data:
+            summary: phester edit
+            text: Editing a test page for phester
+            token: +\
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /"result":"Success"/
+      - request:
+          method: get
+          path: /w/api.php
+          parameters:
+            action: parse
+            page: phester
+            format: json
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /Editing a test page for phester/
+  - description: Delete a page
+    interaction:
+      - request:
+          method: post
+          path: /w/api.php
+          parameters:
+            action: delete
+            title: phester
+            format: json
+          form-data:
+            token: +\
+      - request:
+          method: get
+          path: /w/api.php
+          parameters:
+            action: parse
+            page: phester
+            format: json
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /"code":"missingtitle"/
+
