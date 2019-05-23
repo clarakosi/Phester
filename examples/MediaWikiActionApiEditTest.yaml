@@ -10,11 +10,11 @@ description: Testing page creation, edit, and delete in ActionAPI
 type: RPC
 
 tests:
-  - description: Create a page
+  - description: Create, edit, and delete a page
     interaction:
       - request:
           method: post
-          path: /w/api.php
+          path: api.php
           parameters:
             action: edit
             title: phester
@@ -31,7 +31,7 @@ tests:
           body: !pcre/pattern: /"result":"Success"/
       - request:
           method: get
-          path: /w/api.php
+          path: api.php
           parameters:
             action: parse
             page: phester
@@ -41,11 +41,9 @@ tests:
           headers:
             content-type: !pcre/pattern: /application\/json/
           body: !pcre/pattern: /A test page for phester/
-  - description: Edit a page
-    interaction:
       - request:
           method: post
-          path: /w/api.php
+          path: api.php
           parameters:
             action: edit
             title: phester
@@ -61,7 +59,7 @@ tests:
           body: !pcre/pattern: /"result":"Success"/
       - request:
           method: get
-          path: /w/api.php
+          path: api.php
           parameters:
             action: parse
             page: phester
@@ -71,20 +69,23 @@ tests:
           headers:
             content-type: !pcre/pattern: /application\/json/
           body: !pcre/pattern: /Editing a test page for phester/
-  - description: Delete a page
-    interaction:
       - request:
           method: post
-          path: /w/api.php
+          path: api.php
           parameters:
             action: delete
             title: phester
             format: json
           form-data:
             token: +\
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /"delete":{"title":"Phester"/
       - request:
           method: get
-          path: /w/api.php
+          path: api.php
           parameters:
             action: parse
             page: phester
