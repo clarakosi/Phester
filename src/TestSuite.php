@@ -149,6 +149,12 @@ class TestSuite {
 	 */
 	private function executeRequest( $request, $expectedResponse, $description ) {
 		$path = $request->get( 'path', '' );
+		$pathVar = $request->get( 'pathvar', '' );
+
+		if ( $pathVar instanceof Instructions ) {
+			$arr = $pathVar->getArray();
+			$path = $this->urlEncode( $path, $arr );
+		}
 		$method = $request->getLowerCase( 'method' );
 		$payload = [];
 
@@ -178,8 +184,23 @@ class TestSuite {
 			$payload['headers'] = $request->get( 'headers' )->getArray();
 		}
 
+		$payload['http_errors'] = false;
 		$response = $this->client->request( $method, $path, $payload );
 		return $this->compareResponses( $expectedResponse, $response, $description );
+	}
+
+	/**
+	 * Encodes path variables and returns updated $path
+	 * @param string $path
+	 * @param array $pathVar
+	 * @return mixed
+	 */
+	private function urlEncode( $path, $pathVar ) {
+		foreach ( $pathVar as $key => $value ) {
+			$pathVar[$key] = urlencode( $value );
+		}
+
+		return str_replace( array_keys( $pathVar ), $pathVar, $path );
 	}
 
 	/**

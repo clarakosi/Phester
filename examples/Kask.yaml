@@ -1,0 +1,52 @@
+#Tested on a local Kask instance.
+#
+#To use run: ./phester.php test kask_url:port/base_uri/ examples/Kask.yaml
+#Example: ./phester.php test http://0.0.0.0:8081/sessions/v1/ examples/Kask.yaml
+
+
+suite: TestKask
+description: Testing key/value get, set and delete
+type: REST
+
+tests:
+  - description: Create, edit, and delete a key/value
+    interaction:
+      - request:
+          method: post
+          path: key
+          pathVar:
+            key: KASK:K:INTEGRATION_TEST_KEY
+          body: KASK:V:INTEGRATION_TEST_VALUE
+          headers:
+            content-type: application/octet-stream
+        response:
+          status: 201
+      - request:
+          method: get
+          path: key
+          pathVar:
+            key: KASK:K:INTEGRATION_TEST_KEY
+        response:
+          status: 200
+          headers:
+            content-type: !pcre/pattern: /application\/octet-stream/
+          body: !pcre/pattern: /KASK:V:INTEGRATION_TEST_VALUE/
+      - request:
+          method: delete
+          path: key
+          pathVar:
+            key: KASK:K:INTEGRATION_TEST_KEY
+        response:
+          status: 204
+      - request:
+          method: get
+          path: key
+          pathVar:
+            key: KASK:K:INTEGRATION_TEST_KEY
+        response:
+          status: 404
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body:
+            title: Not found
+            detail: The value you requested was not found
