@@ -62,7 +62,7 @@ class Instructions {
 
 		if ( !is_null( $value ) ) {
 			if ( $value  instanceof Instructions ) {
-				return is_array( $value->getArray() );
+				return is_array( $value->asArray() );
 			}
 			return is_array( $value );
 		}
@@ -74,25 +74,27 @@ class Instructions {
 	 * @return string containing the JSON representation of the array
 	 */
 	public function arrayToString() {
-		return json_encode( $this->getArray() );
+		return json_encode( $this->asArray() );
 	}
 
 	/**
 	 * Gets the array
 	 * @return array
 	 */
-	public function getArray() {
+	public function asArray() {
 		return $this->array;
 	}
 
 	/**
 	 * Gets the $key's value in lowercase
 	 * @param string|array $key
+     * @param string|null $default
 	 * @return string|null
 	 */
-	public function getLowerCase( $key ) {
-		if ( $this->has( $key ) && is_string( $this->get( $key ) ) ) {
-			return strtolower( $this->get( $key ) );
+	public function getLowerCase( $key, $default = null ) {
+	    $value = $this->get( $key, $default );
+		if ( is_string( $value ) ) {
+			return strtolower( $value );
 		}
 
 		return null;
