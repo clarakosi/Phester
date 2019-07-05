@@ -47,6 +47,7 @@ class TestSuite {
 	 */
 	public function run() {
 		$output = [];
+		$output[] = "- Suite: " . $this->suiteData->get( 'suite' );
 
 		if ( !$this->suiteData->has( 'suite' ) || !$this->suiteData->has( 'description' ) ) {
 			$this->logger->error( "Test suite must include 'suite' and 'description'" );
@@ -54,10 +55,12 @@ class TestSuite {
 		}
 
 		if ( $this->suiteData->has( 'setup' ) ) {
-			$errors = $this->runInteraction( $this->suiteData->get( 'setup' ), "Test Setup" );
+			$errors = $this->runInteraction( $this->suiteData->get( 'setup' ) );
 
 			if ( $errors ) {
+				$output[] = "! Setup failed:";
 				$output = array_merge( $output, $errors );
+				return $output;
 			}
 		}
 
@@ -70,11 +73,6 @@ class TestSuite {
 		} else {
 			$this->logger->error( "Test suites must have the 'tests' keyword" );
 			return;
-		}
-
-		if ( $output ) {
-			array_unshift( $output, "\nTest: " . $this->suiteData->get( 'suite' ),
-				"Description: " . $this->suiteData->get( 'description' ) );
 		}
 
 		return $output;
@@ -99,9 +97,10 @@ class TestSuite {
 			$description = $test->get( 'description' );
 			$interaction = $test->get( 'interaction' );
 
-			$errors = $this->runInteraction( $interaction, $description );
+			$errors = $this->runInteraction( $interaction );
 
 			if ( $errors ) {
+				$output[] = "! Test failed: $description";
 				$output = array_merge( $output, $errors );
 			}
 		}
@@ -111,12 +110,10 @@ class TestSuite {
 	/**
 	 * Runs the interaction(s) from setup or interaction section under tests in YAML
 	 * @param Instructions $interaction
-	 * @param string $description of test or setup
-	 * @return array|void errors from interaction
+	 * @return array errors from interaction
 	 * @throws GuzzleException
 	 */
-	private function runInteraction( $interaction, $description ) {
-		$output = [];
+	private function runInteraction( $interaction ) {
 		foreach ( $interaction->getArray() as $rrPair ) {
 			$rrPair = new Instructions( $rrPair );
 			if ( $rrPair->has( 'request' ) ) {
@@ -124,18 +121,19 @@ class TestSuite {
 				$expected = $response instanceof Instructions ? $response->getArray() : [];
 				$expected['status'] = $expected['status'] ?? 200;
 
-				$errors = $this->executeRequest( $rrPair->get( 'request' ), $expected, $description );
+				$errors = $this->executeRequest( $rrPair->get( 'request' ), $expected );
 
 				if ( $errors ) {
-					$output = array_merge( $output, $errors );
+				    // fail the entire test if one step failed.
+					return $errors;
 				}
 			} else {
-				$this->logger->error( "Expected 'request' key in object but instead found the following
-                        object:", [ $rrPair->arrayToString() ] );
-				return;
+				$this->logger->error( "Expected 'request' key in object but instead found the following object:",
+					[ $rrPair->arrayToString() ] );
+				return [];
 			}
 		}
-		return $output;
+		return [];
 	}
 
 	/**
@@ -143,11 +141,10 @@ class TestSuite {
 	 * expectations defined in the test suite definition
 	 * @param Instructions $request
 	 * @param array $expectedResponse
-	 * @param string $description description of test or setup
 	 * @return array|void comparison errors
 	 * @throws GuzzleException
 	 */
-	private function executeRequest( $request, $expectedResponse, $description ) {
+	private function executeRequest( $request, $expectedResponse ) {
 		$path = $request->get( 'path', '' );
 		$pathVar = $request->get( 'pathvar', '' );
 
@@ -186,7 +183,7 @@ class TestSuite {
 
 		$payload['http_errors'] = false;
 		$response = $this->client->request( $method, $path, $payload );
-		return $this->compareResponses( $expectedResponse, $response, $description );
+		return $this->compareResponses( $expectedResponse, $response );
 	}
 
 	/**
@@ -274,27 +271,26 @@ class TestSuite {
 	 * Compares the expected response to the actual response from the API
 	 * @param array $expected
 	 * @param Response $actual
-	 * @param string $description description of the test
 	 * @return array
 	 */
-	private function compareResponses( $expected, $actual, $description ) {
+	private function compareResponses( $expected, $actual ) {
 		$output = [];
 		foreach ( $expected as $key => $value ) {
 			switch ( strtolower( $key ) ) {
 				case 'status':
-					$assertionResult = $this->assertMatch( $value, $actual->getStatusCode(), $description );
+					$assertionResult = $this->assertMatch( $value, $actual->getStatusCode(), 'Status' );
 
 					if ( $assertionResult ) {
-						$output[] = $assertionResult;
+						$output[] = "\t$assertionResult";
 					}
 					break;
 				case 'headers':
 					foreach ( $value as $header => $headerVal ) {
 						$assertionResult = $this->assertMatch( $headerVal, $actual->getHeaderLine( $header ),
-							$description );
+							"$header header" );
 
 						if ( $assertionResult ) {
-							$output[] = $assertionResult;
+							$output[] = "\t$assertionResult";
 						}
 					};
 					break;
@@ -303,13 +299,13 @@ class TestSuite {
 
 					if ( is_array( $value ) ) {
 						if ( !$this->compareArrays( $value, json_decode( $body, true ) ) ) {
-							$output[] = "\t$description failed, expected:" . json_encode( $value ) . " actual: $body";
+							$output[] = "\tBody JSON: expected:" . json_encode( $value ) . " actual: $body";
 						}
 					} else {
-						$assertionResult = $this->assertMatch( $value, $body, $description );
+						$assertionResult = $this->assertMatch( $value, $body, 'Body text' );
 
 						if ( $assertionResult ) {
-							$output[] = $assertionResult;
+							$output[] = "\t$assertionResult";
 						}
 					}
 					break;
@@ -337,14 +333,14 @@ class TestSuite {
 				$pattern = $expected->getValue();
 
 				if ( !preg_match( $pattern, $actual ) ) {
-					return "\t$message failed, expected: $pattern, actual: $actual";
+					return "$message: expected: $pattern, actual: $actual";
 				};
 			} else {
 				$this->logger->error( "$tagName is not a supported yaml tag." );
 			}
 		} else {
 			if ( $expected !== $actual ) {
-				return "\t$message failed, expected: $expected, actual: $actual";
+				return "$message: expected: $expected, actual: $actual";
 			}
 		}
 	}

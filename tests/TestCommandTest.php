@@ -23,7 +23,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 		 $commandTester->execute( [
 			 'command' => $command->getName() ,
 			 'base_uri' => 'https://www.mediawiki.org',
-			 'file_paths' => [ __DIR__ . '/unittest2.yaml' ],
+			 'file_paths' => [ __DIR__ . '/unittest.yaml' ],
 		 ] );
 
 		 $this->assertRegExp( '/Test data will be written to the site at https:\/\/www.mediawiki.org/',
