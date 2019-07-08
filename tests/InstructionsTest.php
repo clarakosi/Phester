@@ -116,7 +116,7 @@ class InstructionsTest extends TestCase {
 		$this->assertJsonStringEqualsJsonString( $this->instructions->arrayToString(), $string );
 	}
 
-	public function testGetArray() {
+	public function testAsArray() {
 		$array = [
 			'request' => [
 				'method' => 'GET',
@@ -130,7 +130,7 @@ class InstructionsTest extends TestCase {
 			]
 		];
 
-		$this->assertEquals( $this->instructions->getArray(), $array );
+		$this->assertEquals( $this->instructions->asArray(), $array );
 	}
 
 	public function testGetLowerCaseWithSetKey() {
@@ -140,5 +140,9 @@ class InstructionsTest extends TestCase {
 	public function testGetLowerCaseWithUnsetKey() {
 		$this->assertEquals( $this->instructions->getLowerCase( [ 'response', 'status' ] ), null );
 	}
+
+    public function testGetLowerCaseWithDefaultValue() {
+        $this->assertEquals( $this->instructions->getLowerCase( [ 'response', 'status' ], '123' ), '123' );
+    }
 
 }

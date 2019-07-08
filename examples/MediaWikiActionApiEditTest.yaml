@@ -5,13 +5,15 @@
 #
 # TODO: Add variable extraction option to be able to login, get CSRF token, and run tests w/ token
 
-suite: TestAction
-description: Testing page creation, edit, and delete in ActionAPI
+suite: MediaWiki action API CRUD
+description: Testing page creation, edit, and delete in MediaWiki's action API
 type: RPC
 
 tests:
   - description: Create, edit, and delete a page
     interaction:
+
+      # create and check content
       - request:
           method: post
           path: api.php
@@ -25,74 +27,73 @@ tests:
             text: A test page for phester
             token: +\
         response:
-          status: 200
           headers:
             content-type: !pcre/pattern: /application\/json/
-          body: !pcre/pattern: /"result":"Success"/
+          body:
+            edit:
+              result: Success
       - request:
-          method: get
           path: api.php
           parameters:
             action: parse
             page: phester
             format: json
         response:
-          status: 200
           headers:
             content-type: !pcre/pattern: /application\/json/
           body: !pcre/pattern: /A test page for phester/
+
+      # modify and check content
       - request:
           method: post
           path: api.php
-          parameters:
+          form-data:
             action: edit
             title: phester
             format: json
-          form-data:
             summary: phester edit
             text: Editing a test page for phester
             token: +\
         response:
-          status: 200
           headers:
             content-type: !pcre/pattern: /application\/json/
-          body: !pcre/pattern: /"result":"Success"/
+          body:
+            edit:
+              result: Success
       - request:
-          method: get
           path: api.php
           parameters:
             action: parse
             page: phester
             format: json
         response:
-          status: 200
           headers:
             content-type: !pcre/pattern: /application\/json/
           body: !pcre/pattern: /Editing a test page for phester/
+
+      # delete and check that it's gone
       - request:
           method: post
           path: api.php
-          parameters:
+          form-data:
             action: delete
             title: phester
             format: json
-          form-data:
             token: +\
         response:
-          status: 200
           headers:
             content-type: !pcre/pattern: /application\/json/
-          body: !pcre/pattern: /"delete":{"title":"Phester"/
+          body:
+            delete:
+              title: Phester
       - request:
-          method: get
           path: api.php
           parameters:
             action: parse
             page: phester
             format: json
         response:
-          status: 200
-          headers:
-            content-type: !pcre/pattern: /application\/json/
-          body: !pcre/pattern: /"code":"missingtitle"/
+          body:
+            error:
+              code: "missingtitle"
 

@@ -88,7 +88,7 @@ class TestSuite {
 	 */
 	private function runTests( $tests ) {
 		$output = [];
-		foreach ( $tests->getArray() as $test ) {
+		foreach ( $tests->asArray() as $test ) {
 			$test = new Instructions( $test );
 
 			if ( !$test->has( 'description' ) || !$test->has( 'interaction' ) ) {
@@ -117,11 +117,11 @@ class TestSuite {
 	 */
 	private function runInteraction( $interaction, $description ) {
 		$output = [];
-		foreach ( $interaction->getArray() as $rrPair ) {
+		foreach ( $interaction->asArray() as $rrPair ) {
 			$rrPair = new Instructions( $rrPair );
 			if ( $rrPair->has( 'request' ) ) {
 				$response = $rrPair->get( 'response' );
-				$expected = $response instanceof Instructions ? $response->getArray() : [];
+				$expected = $response instanceof Instructions ? $response->asArray() : [];
 				$expected['status'] = $expected['status'] ?? 200;
 
 				$errors = $this->executeRequest( $rrPair->get( 'request' ), $expected, $description );
@@ -152,10 +152,10 @@ class TestSuite {
 		$pathVar = $request->get( 'pathvar', '' );
 
 		if ( $pathVar instanceof Instructions ) {
-			$arr = $pathVar->getArray();
+			$arr = $pathVar->asArray();
 			$path = $this->urlEncode( $path, $arr );
 		}
-		$method = $request->getLowerCase( 'method' );
+		$method = $request->getLowerCase( 'method', 'get' );
 		$payload = [];
 
 		if ( $method === 'post' || $method === 'put' ) {
@@ -176,12 +176,12 @@ class TestSuite {
 		}
 
 		if ( $request->has( 'parameters' ) ) {
-			$payload['query'] = $request->get( 'parameters' )->getArray();
+			$payload['query'] = $request->get( 'parameters' )->asArray();
 		}
 
 		if ( $request->has( 'headers' ) &&
 			$request->get( [ 'headers', 'content-type' ] ) !== 'multipart/form-data' ) {
-			$payload['headers'] = $request->get( 'headers' )->getArray();
+			$payload['headers'] = $request->get( 'headers' )->asArray();
 		}
 
 		$payload['http_errors'] = false;
@@ -217,13 +217,13 @@ class TestSuite {
 		) {
 
 			$multipart = [];
-			foreach ( $request->get( $from )->getArray() as $key => $value ) {
+			foreach ( $request->get( $from )->asArray() as $key => $value ) {
 				$multipart[] = [ 'name' => $key, 'contents' => $value ];
 			}
 
 			$payload['multipart'] = $multipart;
 
-			$headers = $request->get( 'headers' )->getArray();
+			$headers = $request->get( 'headers' )->asArray();
 
 			// Guzzle multipart request option does not accept a content-type
 			// header and will throw an error if provided.
@@ -233,7 +233,7 @@ class TestSuite {
 				$payload['headers'] = $headers;
 			}
 		} else {
-			$payload['form_params'] = $request->get( $from )->getArray();
+			$payload['form_params'] = $request->get( $from )->asArray();
 		}
 
 		return $payload;
@@ -255,10 +255,10 @@ class TestSuite {
 				) {
 					$payload = $this->getFormDataPayload( $request, 'body' );
 				} else {
-					$payload['json'] = $request->get( 'body' )->getArray();
+					$payload['json'] = $request->get( 'body' )->asArray();
 				}
 			} else {
-				$payload['json'] = $request->get( 'body' )->getArray();
+				$payload['json'] = $request->get( 'body' )->asArray();
 			}
 		} elseif ( is_string( $request->get( 'body' ) ) ) {
 			$payload['body'] = $request->get( 'body' );
