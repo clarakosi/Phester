@@ -1,0 +1,91 @@
+# This does hit a race condition with cache invalidation.
+#
+# TODO: Re-check once variables and session cookies are possible
+
+suite: Reparse of dependent pages
+description: Re-parse of dependent pages and then fetching the rendered page from the article path
+type: RPC
+
+setup:
+  # Create a Reparse Test page with missing template and link
+  - request:
+      method: post
+      path: api.php
+      parameters:
+        action: edit
+        title: Reparse Test
+        createonly: true
+        format: json
+      form-data:
+        summary: Reparse test page
+        text: "{{ Reparse }} [[ Testlink ]]"
+        token: +\
+    response:
+      status: 200
+      body:
+        edit:
+          result: Success
+
+tests:
+  - description: Create template and check template use in a Reparse Test page
+    interaction:
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Template:Reparse
+            format: json
+          form-data:
+            summary: Reparse template page
+            text: This is a reparse template
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      - request:
+          method: get
+          path: api.php
+          parameters:
+            action: parse
+            page: Reparse Test
+            format: json
+        response:
+          status: 200
+          headers:
+            content-type: application/json; charset=utf-8
+          body: !pcre/pattern: /This is a reparse template/
+  - description: Create a page and check page link in Reparse Test page
+    interaction:
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Testlink
+            format: json
+          form-data:
+            summary: Testlink page
+            text: This page is for link testing purpose.
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      - request:
+          method: get
+          path: api.php
+          parameters:
+            action: parse
+            page: Reparse Test
+            format: json
+        response:
+          status: 200
+          headers:
+            content-type: application/json; charset=utf-8
+          body:
+            parse:
+              links:
+                - exists: ""
+                  "*": Testlink

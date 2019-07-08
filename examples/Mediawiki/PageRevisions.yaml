@@ -1,0 +1,78 @@
+suite: Page Revisions
+description: Use API:Revisions to get a page's history
+type: RPC
+
+tests:
+  - description: Create, edit and get revison history of page
+    interaction:
+      # create a page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Revisons
+#            createonly: true # TODO: uncomment; should be creating a new page
+            format: json
+          form-data:
+            summary: Create a revision page
+            text: This is a revision test page
+            token: +\
+        response:
+          status: 200
+          headers:
+            content-type: application/json; charset=utf-8
+          body:
+            edit:
+              result: Success
+      # edit a page; revision 1
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Revisions
+            format: json
+          form-data:
+            summary: Revision 1
+            text: This is a revision test page. R1
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # edit a page; revision 2
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Revisions
+            format: json
+          form-data:
+            summary: Revision 2
+            text: This is a revision test page. R2
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # get revision history
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            prop: revisions
+            titles: Revisions
+            rvlimit: 10 # TODO: Lower when using fresh instance of mediawiki
+            rvprop: size|user|comment
+            format: json
+        response:
+          body:
+            query:
+              pages:
+                175: # TODO: Replace with variable of page id
+                  revisions:
+                    - comment: Revision 2
+                    - comment: Revision 1
+                    - comment: Create revision page
