@@ -141,8 +141,9 @@ class InstructionsTest extends TestCase {
 		$this->assertEquals( $this->instructions->getLowerCase( [ 'response', 'status' ] ), null );
 	}
 
-    public function testGetLowerCaseWithDefaultValue() {
-        $this->assertEquals( $this->instructions->getLowerCase( [ 'response', 'status' ], '123' ), '123' );
-    }
+	public function testGetLowerCaseWithDefaultValue() {
+		$this->assertEquals( $this->instructions->getLowerCase( [ 'response', 'status' ], '123' ),
+			'123' );
+	}
 
 }

@@ -1,7 +1,7 @@
-#Tested on a local Kask instance.
+# Tested on a local Kask instance.
 #
-#To use run: ./phester.php test kask_url:port/base_uri/ examples/Kask.yaml
-#Example: ./phester.php test http://0.0.0.0:8081/sessions/v1/ examples/Kask.yaml
+# To use run: ./phester.php test kask_url:port/base_uri/ examples/Kask.yaml
+# Example: ./phester.php test http://0.0.0.0:8081/sessions/v1/ examples/Kask.yaml
 
 
 suite: TestKask
@@ -14,7 +14,7 @@ tests:
       - request:
           method: post
           path: key
-          pathVar:
+          path-vars:
             key: KASK:K:INTEGRATION_TEST_KEY
           body: KASK:V:INTEGRATION_TEST_VALUE
           headers:
@@ -22,15 +22,13 @@ tests:
         response:
           status: 201
       - request:
-          method: get
           path: key
-          pathVar:
+          path-vars:
             key: KASK:K:INTEGRATION_TEST_KEY
         response:
-          status: 200
           headers:
-            content-type: !pcre/pattern: /application\/octet-stream/
-          body: !pcre/pattern: /KASK:V:INTEGRATION_TEST_VALUE/
+            content-type: application/octet-stream
+          body: KASK:V:INTEGRATION_TEST_VALUE
       - request:
           method: delete
           path: key
@@ -46,7 +44,7 @@ tests:
         response:
           status: 404
           headers:
-            content-type: !pcre/pattern: /application\/json/
+            content-type: application/json
           body:
             title: Not found
             detail: The value you requested was not found

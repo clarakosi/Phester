@@ -21,8 +21,9 @@ tests:
   - description: Get information about Main Page
     interaction:
       - request:
-          method: get
-          path: /w/api.php
+          path: /w/api.php/test
+          path-vars:
+            test: Phester:Testing
           parameters:
             action: query
             prop: info

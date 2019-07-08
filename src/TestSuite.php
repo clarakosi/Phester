@@ -114,7 +114,7 @@ class TestSuite {
 	 * @throws GuzzleException
 	 */
 	private function runInteraction( $interaction ) {
-		foreach ( $interaction->getArray() as $rrPair ) {
+		foreach ( $interaction->asArray() as $rrPair ) {
 			$rrPair = new Instructions( $rrPair );
 			if ( $rrPair->has( 'request' ) ) {
 				$response = $rrPair->get( 'response' );
@@ -124,11 +124,12 @@ class TestSuite {
 				$errors = $this->executeRequest( $rrPair->get( 'request' ), $expected );
 
 				if ( $errors ) {
-				    // fail the entire test if one step failed.
+					// fail the entire test if one step failed.
 					return $errors;
 				}
 			} else {
-				$this->logger->error( "Expected 'request' key in object but instead found the following object:",
+				$this->logger->error(
+					"Expected 'request' key in object but instead found the following object:",
 					[ $rrPair->arrayToString() ] );
 				return [];
 			}
@@ -146,7 +147,7 @@ class TestSuite {
 	 */
 	private function executeRequest( $request, $expectedResponse ) {
 		$path = $request->get( 'path', '' );
-		$pathVar = $request->get( 'pathvar', '' );
+		$pathVar = $request->get( 'path-vars', '' );
 
 		if ( $pathVar instanceof Instructions ) {
 			$arr = $pathVar->asArray();
@@ -193,9 +194,8 @@ class TestSuite {
 	 * @return mixed
 	 */
 	private function urlEncode( $path, $pathVar ) {
-		foreach ( $pathVar as $key => $value ) {
-			$pathVar[$key] = urlencode( $value );
-		}
+		$pathVar = array_map( function ( $value ) { return urlencode( $value );
+  }, $pathVar );
 
 		return str_replace( array_keys( $pathVar ), $pathVar, $path );
 	}

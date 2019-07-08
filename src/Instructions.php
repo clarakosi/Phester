@@ -88,11 +88,11 @@ class Instructions {
 	/**
 	 * Gets the $key's value in lowercase
 	 * @param string|array $key
-     * @param string|null $default
+	 * @param string|null $default
 	 * @return string|null
 	 */
 	public function getLowerCase( $key, $default = null ) {
-	    $value = $this->get( $key, $default );
+		$value = $this->get( $key, $default );
 		if ( is_string( $value ) ) {
 			return strtolower( $value );
 		}
