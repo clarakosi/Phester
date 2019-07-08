@@ -63,8 +63,7 @@ class TestSuiteTest extends TestCase {
 			'suite' => 'unit-test',
 			'description' => 'unit test',
 			'setup' => [ [ 'response' => [ 'status' => 200 ] ] ] ],
-			"Expected 'request' key in object but instead found the following
-                        object:" ];
+			"Expected 'request' key in object but instead found the following object:" ];
 
 		yield 'unsupported form-data type' => [ [
 			'suite' => 'unit-test',
@@ -154,37 +153,98 @@ class TestSuiteTest extends TestCase {
 
 		$testsuite = new TestSuite( new Instructions( $data ), $this->logger, $client );
 
-		$this->assertEquals( $testsuite->run(), [] );
+		$this->assertEquals( $testsuite->run(), [ '- Suite: UnitTest' ] );
+	}
+
+	public function provideInteraction() {
+		$prelude = [
+			'suite' => 'UnitTest',
+			'description' => 'Testing unit',
+			'type' => 'RPC',
+		];
+
+		yield [
+			$prelude + [
+				'setup' => [ [
+					'request' => [ 'path' => 'ping' ],
+				] ]
+			],
+			[
+				new Response( 302 )
+			],
+			[
+				"- Suite: UnitTest",
+				"! Setup failed:",
+				"\tStatus: expected: 200, actual: 302"
+			]
+		];
+
+		yield [
+			$prelude + [
+				'setup' => [ [
+					'request' => [ 'path' => 'ping' ],
+					'response' => [ 'body' => 'yes' ],
+				] ]
+			],
+			[
+				new Response( 200, [], 'no' )
+			],
+			[
+				"- Suite: UnitTest",
+				"! Setup failed:",
+				"\tBody text: expected: yes, actual: no"
+			]
+		];
+
+		yield [
+			$prelude + [
+				'tests' => [
+					[
+						'description' => 'get foo',
+						'interaction' => [
+							[
+								'request' => [ 'path' => 'foo' ],
+								'response' => [],
+							],
+						]
+					],
+					[
+						'description' => 'get xyz',
+						'interaction' => [
+							[
+								'request' => [ 'path' => 'xyz' ],
+								'response' => [
+									'body' => [ 'pages' => [ 'pageid' => '143' ] ],
+								],
+							],
+						]
+					],
+				]
+			],
+			[
+				new Response( 302 ),
+				new Response( 200, [ 'content-type' => 'application/json' ], "{\"pages\":{\"pageids\":77}}" ),
+			],
+			[
+				"- Suite: UnitTest",
+				"! Test failed: get foo",
+				"\tStatus: expected: 200, actual: 302",
+				"! Test failed: get xyz",
+				"\tBody JSON: expected:{\"pages\":{\"pageid\":\"143\"}} actual: {\"pages\":{\"pageids\":77}}",
+			]
+		];
 	}
 
 	/**
-	 * @throws \GuzzleHttp\Exception\GuzzleException
+	 * @dataProvider provideInteraction
 	 */
-	public function testRunWithFileExpectErrors() {
-		$client = $this->getClient( [
-			new Response( 200, [ 'content-type' => 'application/json' ], "{\"validity\":\"Not Valid\"}" ),
-			new Response( 302, [ 'content-type' => 'application/json' ] ),
-			new Response( 200, [ 'content-type' => 'application/json' ], "{\"pages\":{\"pageids\":142}}" )
-		] );
+	public function testInteraction( $instructions, $responses, $output ) {
+		$client = $this->getClient( $responses );
 
-		$data = Yaml::parseFile( __DIR__ . '/unittest2.yaml', Yaml::PARSE_CUSTOM_TAGS );
+		$testsuite = new TestSuite( new Instructions( $instructions ), $this->logger, $client );
+		$result = $testsuite->run();
 
-		$testsuite = new TestSuite( new Instructions( $data ), $this->logger, $client );
-		$run = $testsuite->run();
-
-		list( $records ) = $this->handler->getRecords();
-
-		$this->assertEquals( $run, [
-			"\nTest: UnitTest",
-			"Description: Testing unit",
-			"\tTest Setup failed, expected: /text/, actual: application/json",
-			"\tTest Setup failed, expected: {\"validity\":\"Good\"}, actual: {\"validity\":\"Not Valid\"}",
-			"\tGet information about Main Page failed, expected: 200, actual: 302",
-			"\tGet image failed, expected: 302, actual: 200",
-			"\tGet image failed, expected:{\"pages\":{\"pageid\":143}} actual: {\"pages\":{\"pageids\":142}}"
-		] );
-
-		$this->assertRegExp( "/pcre: is not a supported yaml tag/", $records['message'] );
+		$this->assertEquals( $result, $output );
 	}
 
 	/**
