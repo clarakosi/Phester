@@ -3,7 +3,7 @@
 # TODO: Re-check once variables and session cookies are possible
 
 suite: Reparse of dependent pages
-description: Re-parse of dependent pages and then fetching the rendered page from the article path
+description: Testing the parse of dependent pages before and after they are created
 type: RPC
 
 setup:

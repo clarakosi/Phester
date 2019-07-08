@@ -1,0 +1,63 @@
+suite: Template Transclusion
+description: Use parsing wikitext to confirm template changes
+type: RPC
+
+
+tests:
+  - description: Create, edit, and confirm changes on a template
+    interaction:
+      # Create template
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Template:APIParsing
+            createonly: true
+            format: json
+          form-data:
+            summary: Create api parsing test template
+            text: Testing template transclusion
+            token: +\
+        response:
+          status: 200
+          body:
+            edit:
+              result: Success
+      # Parse template
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: Template:APIParsing
+            format: json
+        response:
+          status: 200
+          body: !pcre/pattern: /Testing template transclusion/
+      # Edit a template
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Template:APIParsing
+            format: json
+          form-data:
+            summary: Create api parsing test template
+            text: Test editing template transclusion
+            token: +\
+        response:
+          status: 200
+          body:
+            edit:
+              result: Success
+      # Parse template
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: Template:APIParsing
+            format: json
+        response:
+          status: 200
+          body: !pcre/pattern: /Test editing template transclusion/

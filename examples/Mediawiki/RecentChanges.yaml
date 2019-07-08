@@ -1,0 +1,77 @@
+suite: Recent Changes
+description: Testing recent changes to a wiki
+type: RPC
+
+setup:
+  # Create a new page
+  - request:
+      method: post
+      path: api.php
+      parameters:
+        action: edit
+        title: Recent Changes
+        createonly: true
+        format: json
+      form-data:
+        summary: Create a recent changes test page
+        text: This is a recent changes test page.
+        token: +\
+    response:
+      status: 200
+      body:
+        edit:
+          result: Success
+
+
+tests:
+  - description: Get all new page creation recent changes
+    interaction:
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            list: recentchanges
+            rctype: new
+            format: json
+        response:
+          status: 200
+          headers:
+            content-type: application/json; charset=utf-8
+          body:
+            query:
+              recentchanges:
+                - type: new
+                  title: Recent Changes
+  - description: Edit page and get most recent edit changes
+    interaction:
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Recent Changes
+            format: json
+          form-data:
+            summary: Revision 1
+            text: This is a recent changes test page with revision 1.
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            list: recentchanges
+            rctype: edit
+            format: json
+        response:
+          status: 200
+          headers:
+            content-type: application/json; charset=utf-8
+          body:
+            query:
+              recentchanges:
+                - type: edit
+                  title: Recent Changes
