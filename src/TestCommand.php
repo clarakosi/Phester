@@ -45,12 +45,15 @@ class TestCommand extends SymfonyCommand {
 	 */
 	public function execute( InputInterface $input, OutputInterface $output ) {
 		$base_uri = $input->getArgument( 'base_uri' );
-		$helper = $this->getHelper( 'question' );
-		$question = new ConfirmationQuestion( "Test data will be written to the site at "
-			. $base_uri . " Existing data may be damaged. Type 'yes' to confirm! ", false );
 
-		if ( !$helper->ask( $input, $output, $question ) ) {
-			return;
+		if ( !$input->getOption( 'no-interaction' ) ) {
+			$helper = $this->getHelper( 'question' );
+			$question = new ConfirmationQuestion( "Test data will be written to the site at "
+				. $base_uri . " Existing data may be damaged. Type 'yes' to confirm! ", false );
+
+			if ( !$helper->ask( $input, $output, $question ) ) {
+				return;
+			}
 		}
 
 		$files = $input->getArgument( 'file_paths' );
