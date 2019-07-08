@@ -5,7 +5,7 @@ API testing framework
 
 ### Technologies (so far):
 #### Required Dependencies:
-- php
+- php ^7.2
 - ext-json
 - guzzlehttp/guzzle
 - psr/log

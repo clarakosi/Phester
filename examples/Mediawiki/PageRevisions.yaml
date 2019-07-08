@@ -1,5 +1,5 @@
 suite: Page Revisions
-description: Use API:Revisions to get a page's history
+description: Testing API:Revisions to get a page's history
 type: RPC
 
 tests:

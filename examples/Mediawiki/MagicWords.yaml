@@ -1,0 +1,61 @@
+suite: Magic Words
+description: Testing magic words function and variables
+type: RPC
+
+tests:
+  - description: Create page with magic words functions
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Magic Functions
+            createonly: true
+            format: json
+          form-data:
+            summary: create page with magic words functions
+            text: "{{lc:DATA CENTER}} {{plural:1*1|is|are}} {{ns:-1}}"
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # get page and check content
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: Magic Functions
+            format: json
+        response:
+          body: !pcre/pattern: /data center is Special/
+  - description: Create page with magic words variables
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Magic Variables
+            createonly: true
+            format: json
+          form-data:
+            summary: create page with magic words variables
+            text: "{{PAGENAME}} is in {{#language:{{PAGELANGUAGE}}}}"
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # get page and check content
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: Magic Variables
+            format: json
+        response:
+          body: !pcre/pattern: /Magic Variables is in English/
