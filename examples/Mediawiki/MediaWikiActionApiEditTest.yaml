@@ -27,8 +27,6 @@ tests:
             text: A test page for phester
             token: +\
         response:
-          headers:
-            content-type: !pcre/pattern: /application\/json/
           body:
             edit:
               result: Success
@@ -55,8 +53,6 @@ tests:
             text: Editing a test page for phester
             token: +\
         response:
-          headers:
-            content-type: !pcre/pattern: /application\/json/
           body:
             edit:
               result: Success
@@ -81,8 +77,6 @@ tests:
             format: json
             token: +\
         response:
-          headers:
-            content-type: !pcre/pattern: /application\/json/
           body:
             delete:
               title: Phester

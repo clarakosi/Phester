@@ -42,7 +42,7 @@ class TestSuite {
 
 	/**
 	 * Runs test suite
-	 * @return array|void errors from test suite
+	 * @return array errors from test suite
 	 * @throws GuzzleException
 	 */
 	public function run() {
@@ -51,7 +51,7 @@ class TestSuite {
 
 		if ( !$this->suiteData->has( 'suite' ) || !$this->suiteData->has( 'description' ) ) {
 			$this->logger->error( "Test suite must include 'suite' and 'description'" );
-			return;
+			return $output;
 		}
 
 		if ( $this->suiteData->has( 'setup' ) ) {
@@ -71,8 +71,8 @@ class TestSuite {
 				$output = array_merge( $output, $errors );
 			}
 		} else {
-			$this->logger->error( "Test suites must have the 'tests' keyword" );
-			return;
+			$this->logger->warning( "No tests defined in suite" );
+			return $output;
 		}
 
 		return $output;
@@ -274,11 +274,20 @@ class TestSuite {
 	 * @return array
 	 */
 	private function compareResponses( $expected, $actual ) {
+		if ( !isset( $expected['headers']['content-type'] )
+			&& isset( $expected['body'] )
+			&& is_array( $expected['body'] )
+		) {
+			$expected['headers']['content-type'] =
+				new TaggedValue( 'pcre/pattern:', '@^application/json\b@' );
+		}
+
 		$output = [];
 		foreach ( $expected as $key => $value ) {
 			switch ( strtolower( $key ) ) {
 				case 'status':
-					$assertionResult = $this->assertMatch( $value, $actual->getStatusCode(), 'Status' );
+					$assertionResult = $this->assertMatch( $value,
+						$actual->getStatusCode(), 'Status' );
 
 					if ( $assertionResult ) {
 						$output[] = "\t$assertionResult";
@@ -286,8 +295,8 @@ class TestSuite {
 					break;
 				case 'headers':
 					foreach ( $value as $header => $headerVal ) {
-						$assertionResult = $this->assertMatch( $headerVal, $actual->getHeaderLine( $header ),
-							"$header header" );
+						$assertionResult = $this->assertMatch( $headerVal,
+							$actual->getHeaderLine( $header ), "$header header" );
 
 						if ( $assertionResult ) {
 							$output[] = "\t$assertionResult";
@@ -299,7 +308,8 @@ class TestSuite {
 
 					if ( is_array( $value ) ) {
 						if ( !$this->compareArrays( $value, json_decode( $body, true ) ) ) {
-							$output[] = "\tBody JSON: expected:" . json_encode( $value ) . " actual: $body";
+							$output[] = "\tBody JSON: expected:" . json_encode( $value )
+								. " actual: $body";
 						}
 					} else {
 						$assertionResult = $this->assertMatch( $value, $body, 'Body text' );
@@ -320,7 +330,7 @@ class TestSuite {
 
 	/**
 	 * Compares two values
-	 * @param string|TaggedValue $expected
+	 * @param string|int|float|bool|TaggedValue $expected
 	 * @param string $actual
 	 * @param string $message test description
 	 * @return string|void
@@ -333,11 +343,15 @@ class TestSuite {
 				$pattern = $expected->getValue();
 
 				if ( !preg_match( $pattern, $actual ) ) {
-					return "$message: expected: $pattern, actual: $actual";
+					return "$message: expected match for: $tagName$pattern, actual: $actual";
 				};
 			} else {
 				$this->logger->error( "$tagName is not a supported yaml tag." );
 			}
+		} elseif ( is_array( $expected ) || is_object( $expected ) ) {
+			$this->logger->error( 'Value of type ' . gettype( $expected )
+				. ' cannot be used in direct comparison.' );
+			return "$message: invalid expected value!";
 		} else {
 			if ( $expected !== $actual ) {
 				return "$message: expected: $expected, actual: $actual";

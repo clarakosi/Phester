@@ -19,9 +19,6 @@ tests:
             text: This is a revision test page
             token: +\
         response:
-          status: 200
-          headers:
-            content-type: application/json; charset=utf-8
           body:
             edit:
               result: Success
