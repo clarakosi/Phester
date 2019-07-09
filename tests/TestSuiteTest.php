@@ -51,7 +51,7 @@ class TestSuiteTest extends TestCase {
 			"Test suite must include 'suite' and 'description'" ];
 
 		yield 'missing tests' => [ [ 'suite' => 'unit-test', 'description' => 'unit test' ],
-			"Test suites must have the 'tests' keyword" ];
+			"No tests defined in suite" ];
 
 		yield 'tests missing interaction' => [ [
 			'suite' => 'unit-test',
@@ -163,7 +163,7 @@ class TestSuiteTest extends TestCase {
 			'type' => 'RPC',
 		];
 
-		yield [
+		yield 'implicit status check' => [
 			$prelude + [
 				'setup' => [ [
 					'request' => [ 'path' => 'ping' ],
@@ -179,7 +179,7 @@ class TestSuiteTest extends TestCase {
 			]
 		];
 
-		yield [
+		yield 'check content text' => [
 			$prelude + [
 				'setup' => [ [
 					'request' => [ 'path' => 'ping' ],
@@ -196,7 +196,51 @@ class TestSuiteTest extends TestCase {
 			]
 		];
 
-		yield [
+		yield 'implicit content-type check' => [
+			$prelude + [
+				'setup' => [ [
+					'request' => [ 'path' => 'ping' ],
+					'response' => [ 'body' => [ 'result' => 'Success' ] ],
+				] ]
+			],
+			[
+				new Response(
+					200,
+					[ 'content-type' => 'text/plain' ],
+					json_encode( [ 'result' => 'Success' ] )
+				),
+			],
+			[
+				"- Suite: UnitTest",
+				"! Setup failed:",
+				"\tcontent-type header: expected match for: "
+				. "pcre/pattern:@^application/json\b@, actual: text/plain"
+			]
+		];
+
+		yield 'explicit text/plain with structured body passes' => [
+			$prelude + [
+				'setup' => [ [
+					'request' => [ 'path' => 'ping' ],
+					'response' => [
+						'headers' => [ 'content-type' => 'text/plain' ],
+						'body' => [ 'result' => 'Success' ],
+					],
+				] ]
+			],
+			[
+				new Response(
+					200,
+					[ 'content-type' => 'text/plain' ],
+					json_encode( [ 'result' => 'Success' ] )
+				),
+			],
+			[
+				"- Suite: UnitTest",
+			]
+		];
+
+		yield 'structured body comparison' => [
 			$prelude + [
 				'tests' => [
 					[
@@ -244,7 +288,7 @@ class TestSuiteTest extends TestCase {
 		$testsuite = new TestSuite( new Instructions( $instructions ), $this->logger, $client );
 		$result = $testsuite->run();
 
-		$this->assertEquals( $result, $output );
+		$this->assertEquals( $output, $result );
 	}
 
 	/**
