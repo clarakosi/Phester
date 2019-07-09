@@ -17,11 +17,9 @@ setup:
         text: This is a recent changes test page.
         token: +\
     response:
-      status: 200
       body:
         edit:
           result: Success
-
 
 tests:
   - description: Get all new page creation recent changes
@@ -34,9 +32,6 @@ tests:
             rctype: new
             format: json
         response:
-          status: 200
-          headers:
-            content-type: application/json; charset=utf-8
           body:
             query:
               recentchanges:
@@ -67,9 +62,6 @@ tests:
             rctype: edit
             format: json
         response:
-          status: 200
-          headers:
-            content-type: application/json; charset=utf-8
           body:
             query:
               recentchanges:

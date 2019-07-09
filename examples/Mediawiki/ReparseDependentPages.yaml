@@ -21,7 +21,6 @@ setup:
         text: "{{ Reparse }} [[ Testlink ]]"
         token: +\
     response:
-      status: 200
       body:
         edit:
           result: Success
@@ -52,7 +51,6 @@ tests:
             page: Reparse Test
             format: json
         response:
-          status: 200
           headers:
             content-type: application/json; charset=utf-8
           body: !pcre/pattern: /This is a reparse template/
@@ -81,9 +79,6 @@ tests:
             page: Reparse Test
             format: json
         response:
-          status: 200
-          headers:
-            content-type: application/json; charset=utf-8
           body:
             parse:
               links:
