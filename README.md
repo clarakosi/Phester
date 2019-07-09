@@ -1,4 +1,4 @@
-# Phester
+# Phester [![Build Status](https://travis-ci.org/clarakosi/Phester.svg?branch=master)](https://travis-ci.org/clarakosi/Phester)
 
 API testing framework
 
@@ -35,7 +35,8 @@ API testing framework
 
 Example: `./phester.php test https://www.mediawiki.org example.yaml`
 
-Note: Phester will only output errors. If there are no errors in the test suite files then there will be no output.
+Note: Phester will output suite name and any errors that arise. If there are no errors in the test suite expect an output as:
+`- Suite: Test Suite Name`
 
 ### Spec format
 
@@ -61,7 +62,7 @@ tests: #REQUIRED: Test suite must have tests
     # a description & interaction
     interaction: #REQUIRED: Includes one or more requests 
       - request: #REQUIRED: Must provide a request
-          method: get #REQUIRED: Must provide a method
+          method: get #OPTIONAL: Defaults to GET
           path: /w/api.php #OPTIONAL: Defaults to an empty string
           parameters: #OPTIONAL: Additional query parameters go here
             action: query
@@ -73,7 +74,7 @@ tests: #REQUIRED: Test suite must have tests
         response: #OPTIONAL: Defaults to a status 200
           status: 200
           headers:
-            content-type: !pcre/pattern: /application\/json/ 
+            content-type: !pcre/pattern: /application\/json/
           body: !pcre/pattern: /.+/ # !pcre/pattern: is a tag for regex. The pattern must be
           # between two slashes
   - description: Get image info
@@ -92,7 +93,7 @@ tests: #REQUIRED: Test suite must have tests
         response:
           status: 200
           headers:
-            content-type: !pcre/pattern: /application\/json/
+            content-type: !pcre/pattern: /application\/json/ #OPTIONAL: Defaults to application/json when response body is an object
           body: # Recursive body match
             batchcomplete: ""
             query:
