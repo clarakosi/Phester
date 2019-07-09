@@ -1,0 +1,117 @@
+suite: Watchlist
+description: Testing watchlist functionality
+type: RPC
+
+# Makes the sessions from the Alice and Bob fixtures available by name
+use-fixtures:
+  - Alice
+  - Bob
+
+# templates all parts of the request/response pair to be reused.
+templates:
+  edit:
+    - request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+        form-data:
+          token: p/var: Alice/edit-token # token must match session
+      response:
+        body:
+          edit:
+            result: Success
+
+tests:
+  - description: "watch and unwatch"
+
+    # Use Alice's session as the default for each request.
+    # Note that each test (not request) has a copy of each fixture session.
+    # If no fixture session is selected as the default, a local session with is created.
+    # Variables in the test's default context can be accessed with the prefix "default".
+    # Variables are evaluated in the context of the request's session.
+    # This also makes all variables from the Alice fixture available as if they were local.
+    default-session: Alice
+
+    interation:
+    - template: edit
+      request:
+        parameters:
+          title: Foo
+          createonly: true
+        form-data:
+          comment: first edit
+          text: Just a test
+          watchlist: unwatch
+    - template: edit
+      use-session: Bob # this is a per-test, but not per-request, clone!
+      request:
+        parameters:
+          title: Foo
+          createonly: true
+        form-data:
+          comment: second edit
+          text: More testing
+          watchlist: watch
+          token: p/var: Bob/edit-token # token must match session. Use the session (fixture) name as a prefix.
+    - request:
+          path: api.php
+          parameters:
+            action: query
+            list: watchlist
+            wltype: edit|new
+            format: json
+      response:
+          body:
+            query:
+              watchlist:
+                - type: mew
+                  title: Foo
+                  comment: first edit
+                - type: edit
+                  title: Foo
+                  comment: second edit
+    - request:
+        path: api.php
+        parameters:
+          action: query
+          meta: tokens
+          type: watch
+          format: json
+        response:
+          body:
+            tokens:
+              watch: p/grab: wtoken
+    - request:
+        path: api.php
+        parameters:
+          action: watch
+          title: Foo
+          unwatch: 1
+          token: p/var: wtoken
+          format: json
+        response:
+          body:
+            watch:
+              unwatched: ""
+    - request:
+        path: api.php
+        parameters:
+          action: query
+          list: watchlist
+          wltype: edit|new
+          wlprop: ids|title|comment
+          format: json
+        response:
+          body:
+            query:
+              watchlist: [] # Lists must match the exact number of entries!
+
+
+# Things to test:
+# - watch, edit (bob), check watchlist, unwatch, edit (bob), check watchlist
+# - watchlist filters
+# - auto-watch
+# - watchlist paging
+# - watchlist editing
