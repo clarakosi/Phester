@@ -1,0 +1,162 @@
+# Tested on a local wiki instance with move permission granted to all users and subpages enabled in the main namespace
+#
+#  $wgGroupPermissions['*']['move'] = true;
+#  $wgNamespacesWithSubpages[NS_MAIN] = true;
+# TODO: Add variable extraction option to be able to login, get CSRF token, and run tests w/ token
+
+suite: MediaWiki Move API
+description: Testing page moving with and without redirect, subpages, and talkpages
+type: RPC
+
+tests:
+  - description: Create page and move without redirect, subpage and talkpage
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: MoveWithoutt
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Move without redirect, subpage and talkpage
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # create subpage
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: MoveWithoutt/subpage
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Subpage of move withoutt
+            token: +\
+          response:
+            body:
+              edit:
+                result: Success
+      # create talk page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Talk:MoveWithoutt
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Talk page for Move withoutt
+            token: +\
+          response:
+            body:
+              edit:
+                result: Success
+      # move page without redirect, subpage, and talkpage
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: move
+            from: MoveWithoutt
+            to: Move without
+            noredirect: ""
+            format: json
+          form-data:
+            reason: misspelling
+            token: +\
+        response:
+          body:
+            move:
+              from: MoveWithoutt
+              to: Move without
+              reason: misspelling
+              redirectcreated: ""
+  - description: Create page and move with redirect, subpage, and talkpage
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: MoveWithh
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Move with redirect, subpage and talkpage
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # create subpage
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: MoveWithh/subpage
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Subpage of MoveWith
+            token: +\
+          response:
+            body:
+              edit:
+                result: Success
+      # create talk page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Talk:MoveWithh
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Talk page for MoveWith
+            token: +\
+          response:
+            body:
+              edit:
+                result: Success
+      # move page with redirect, subpage, and talkpage
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: move
+            from: MoveWithh
+            to: Move With
+            movetalk: ""
+            movesubpages: ""
+            format: json
+          form-data:
+            reason: misspelling
+            token: +\
+        response:
+          body:
+            move:
+              from: MoveWithh
+              to: Move With
+              reason: misspelling
+              talkfrom: Talk:MoveWithh
+              talkto: Talk:Move With
+              subpagefrom: MoveWithh
+              subpageto: Move With
+              redirectcreated: ""
