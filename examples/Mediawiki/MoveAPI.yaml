@@ -1,6 +1,8 @@
 # Tested on a local wiki instance with move permission granted to all users and subpages enabled in the main namespace
 #
 #  $wgGroupPermissions['*']['move'] = true;
+#  $wgGroupPermissions['*']['move-subpages'] = true;
+#  $wgGroupPermissions['*']['suppressredirect'] = true;
 #  $wgNamespacesWithSubpages[NS_MAIN] = true;
 # TODO: Add variable extraction option to be able to login, get CSRF token, and run tests w/ token
 
@@ -81,7 +83,23 @@ tests:
               from: MoveWithoutt
               to: Move without
               reason: misspelling
-              redirectcreated: ""
+      # confirm no redirect was created
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            titles: MoveWithoutt|Talk:MoveWithoutt|MoveWithoutt/subpage
+            format: json
+        response:
+          body:
+            query:
+              pages:
+                264:
+                  title: Talk:MoveWithoutt
+                272:
+                  title: MoveWithoutt/subpage
+                -1:
+                  title: MoveWithoutt
   - description: Create page and move with redirect, subpage, and talkpage
     interaction:
       # create page
@@ -155,8 +173,10 @@ tests:
               from: MoveWithh
               to: Move With
               reason: misspelling
+              redirectcreated: ""
               talkfrom: Talk:MoveWithh
               talkto: Talk:Move With
-              subpagefrom: MoveWithh
-              subpageto: Move With
-              redirectcreated: ""
+              subpages:
+                - from: MoveWithh/subpage
+                  to: Move With/subpage
+              subpages-talk: []
