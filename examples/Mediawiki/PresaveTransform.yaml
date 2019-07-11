@@ -1,0 +1,45 @@
+suite: Pre-save Transform
+description: Testing preSaveTransform() function
+type: RPC
+
+tests:
+  - description: Create page with pipetrick and check if transformed
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Presave Transform
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: "[[phabricator:T1|]]"
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # check if pipetrick is transformed
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: Presave Transform
+            format: json
+        response:
+          body: !pcre/pattern: /<a href=\\"https:\/\/phabricator.wikimedia.org\/T1\\" class=\\"extiw\\" title=\\"phabricator:T1\\">T1<\/a>/
+  - description: Use API:Parsing_wikitext to test presave transform of signature
+    interaction:
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            text: ~~~~~
+            title: Baz
+            pst: ""
+            format: json
+        response:
+          body: !pcre/pattern: /\d{2}:\d{2}, \d{1,2} \w{3,} \d{4} \(UTC\)/

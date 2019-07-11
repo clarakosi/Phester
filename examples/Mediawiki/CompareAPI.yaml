@@ -1,0 +1,50 @@
+suite: MediaWiki Compare API
+description: Get the difference between two revisions.
+type: RPC
+
+tests:
+  - description: Create and edit page then compare revisions
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Compare
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Page for comparing diffs
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # edit page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Compare
+            format: json
+          form-data:
+            summary: add api:compare
+            text: Page for comparing diffs using [[API:Compare]]
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # compare revisions page
+      - request:
+          path: api.php
+          parameters:
+            action: compare
+            fromrev: 291 #TODO: Update with first revision id variable
+            torev: 292 #TODO: Update with second revision id variable
+            format: json
+        response:
+          body: !pcre/pattern: /<ins class=\\"diffchange diffchange-inline\\">using \[\[API:Compare\]\]<\/ins>./

@@ -1,0 +1,78 @@
+suite: MediaWiki Query API
+description: Test fetching data from and about wikipages
+type: RPC
+
+setup:
+  # Create a new page
+  - request:
+      method: post
+      path: api.php
+      parameters:
+        action: edit
+        title: Query API
+        createonly: true
+        format: json
+      form-data:
+        summary: Create query api page
+        text: "The main page can be found at [[Main Page]]. There is also a great template at {{Hello}} and a  great cateogry  to review is: [[Category:Wiki]]"
+        token: +\
+    response:
+      body:
+        edit:
+          result: Success
+
+tests:
+  - description: Fetch links of a page
+    interaction:
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            prop: links|categories|templates
+            titles: Query API
+            format: json
+        response:
+          body:
+            query:
+              pages:
+                251: #TODO: Update with variable
+                  links:
+                    - title: Main Page
+                    - title: Template:Hello
+                  categories:
+                    - title: Category:Wiki
+                  templates:
+                    - title: Template:Hello
+  - description: Create page with cateogory and fetch all pages in a given category
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Query API 2
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: "[[Category:Wiki]]"
+            token: +\
+        response:
+          body:
+            edit:
+              result: Success
+      # fetch all pages in Category:Wiki
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            list: categorymembers
+            cmtitle: Category:Wiki
+            format: json
+        response:
+          body:
+            query:
+              categorymembers:
+                - title: Query API
+                - title: Query API 2
