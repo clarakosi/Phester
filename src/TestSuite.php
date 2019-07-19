@@ -194,8 +194,9 @@ class TestSuite {
 	 * @return mixed
 	 */
 	private function urlEncode( $path, $pathVar ) {
-		$pathVar = array_map( function ( $value ) { return urlencode( $value );
-  }, $pathVar );
+		$pathVar = array_map( function ( $value ) {
+				return urlencode( $value );
+		}, $pathVar );
 
 		return str_replace( array_keys( $pathVar ), $pathVar, $path );
 	}

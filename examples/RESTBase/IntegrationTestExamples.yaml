@@ -1,0 +1,30 @@
+# Examples are similar to:
+#    * https://github.com/wikimedia/restbase/blob/master/test/features/pagecontent/pagecontent.js#L72
+#    * https://github.com/wikimedia/restbase/blob/master/test/features/pagecontent/pagecontent.js#L56
+#
+# Example run: ./phester.php test https://en.wikipedia.beta.wmflabs.org/api/rest_v1/ examples/RESTBase/IntegrationTestExamples.yaml
+
+suite: RESTBase integration tests
+description: Integration tests
+type: REST
+
+tests:
+  - description: Should transparently create a new HTML revision with id 252937
+    interaction:
+      - request:
+          path: page/html/Foobar/252937
+        response:
+          headers:
+            vary: !pcre/pattern: /^Accept.+/
+  - description: Should transparently create a new HTML revision for Main_Page
+    interaction:
+      - request:
+          path: page/html/Main_Page
+        response:
+          headers:
+            vary: !pcre/pattern: /^Accept.+/
+      - request:
+          path: page/html/Main_Page
+        response:
+          headers:
+            vary: !pcre/pattern: /^Accept.+/
