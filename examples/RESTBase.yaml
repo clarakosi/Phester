@@ -22,9 +22,9 @@ tests:
           path: page/html/Main_Page
         response:
           headers:
-            vary: !pcre/pattern: /^Accept.+/
+            vary: !pcre/pattern: /^Accept(,[^,]+)*$/
       - request:
           path: page/html/Main_Page
         response:
           headers:
-            vary: !pcre/pattern: /^Accept.+/
+            vary: !pcre/pattern: /^Accept(,[^,]+)*$/
