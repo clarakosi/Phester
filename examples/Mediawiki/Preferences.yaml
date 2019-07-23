@@ -1,0 +1,52 @@
+suite: Preferences
+description: Testing ability to change preferences for a user
+type: RPC
+
+# Use the Alice fixture to use the session for the user
+use-fixtures:
+  - Alice
+
+tests:
+  - description: Update the user's date preference
+    default-session: Alice
+    interaction:
+      # Get user info and confirm date is set to default
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            meta: json
+            uiprop: options
+            format: json
+        response:
+          body:
+            query:
+              userinfo:
+                options:
+                  date: default
+      # Change date preference from default to dmy
+      - request:
+          method: post
+          path: api.php
+          form-data:
+            action: options
+            change: date=dmy
+            token: p/var: Alice/edit-token
+            format: json
+        response:
+          body:
+            options: success
+      # Confirm user's date preference has been changed
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            meta: json
+            uiprop: options
+            format: json
+        response:
+          body:
+            query:
+              userinfo:
+                options:
+                  date: dmy
