@@ -12,7 +12,7 @@ export: [ "name", "email", "id", "edit-token" ]
 variables:
   name: "Alice"
   email: "alice@example"
-  password: p/ix: "{{#randomtext:16}}"
+  password: p/uniq: "pw-"
 
 setup:
   # Get a createaccount token for the root user

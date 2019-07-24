@@ -9,6 +9,10 @@ suite: MediaWiki action API CRUD
 description: Testing page creation, edit, and delete in MediaWiki's action API
 type: RPC
 
+use-fixtures:
+  - Alice
+  - Robby
+
 tests:
   - description: Create, edit, and delete a page
     interaction:
@@ -97,3 +101,86 @@ tests:
             error:
               code: "missingtitle"
 
+  - description: check bot flag is applied correctly
+
+	# use a unique page title
+    variables:
+      title: p/uniq: "BotFlagTest_"
+      
+    interaction:
+    - request:
+        use-session: Alice
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+        form-data:
+          token: p/var: Alice/edit-token # token must match session
+          comment: non-bot edit
+          text: non-bot text
+          bot: 1
+      response:
+        body:
+          edit:
+            result: Success
+            newrevid: p/grab: non-bot-edit-id
+
+    - request:
+        use-session: Robbie
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+        form-data:
+          token: p/var: Robbie/edit-token
+          comment: unflagged edit
+          text: unflagged text
+      response:
+        body:
+          edit:
+            result: Success
+            newrevid: p/grab: unflagged-edit-id
+
+    - request:
+        use-session: Robbie
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+        form-data:
+          token: p/var: Robbie/edit-token
+          comment: bot edit
+          text: bot text
+          bot: 1
+      response:
+        body:
+          edit:
+            result: Success
+            newrevid: p/grab: bot-edit-id
+
+	# check bot flags in RC feed
+    - request:
+          path: api.php
+          parameters:
+            action: query
+            list: recentchanges
+            rctype: edit
+            format: json
+            titles: p/var: title # only get changes to the page created for this test
+        response:
+          status: 200
+          headers:
+            content-type: application/json; charset=utf-8
+          body:
+            query:
+              recentchanges:
+				#note: newest first
+                - revid: p/var: bot-edit
+                  bot: ""
+                - revid: p/var: unflagged-edit
+                  bot: null # do we need a better way to check that a key is not set? will this work?
+                - revid: p/var: non-bot-edit
+                  bot: p/not-exists # ...maybe like this?

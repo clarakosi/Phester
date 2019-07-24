@@ -1,4 +1,4 @@
-fixture: Bob
+fixture: Robby
 description: Creates a user and logs them in
 type: RPC
 
@@ -10,8 +10,8 @@ use-fixtures:
 export: [ "name", "email", "id", "edit-token" ]
 
 variables:
-  name: "Bob"
-  email: "bob@example"
+  name: "Robby"
+  email: "robby@example"
   password: p/uniq: "pw-"
 
 setup:
@@ -22,13 +22,16 @@ setup:
       parameters:
         action: query
         meta: tokens
-        type: createaccount
+        type: createaccount|rights
         format: json
     response:
       body:
         query:
           tokens:
-            createaccount: p/grab: token # grab the value and store is as a local variable
+            # grab values and store them in variables in
+            # the local copy of the RootUser's session context
+            createaccount: p/grab: creation-token
+            userrights: p/grab: rights-token
 
   # Create a new user account
   - use-session: RootUser # use the root user's session, not the session created above
@@ -38,15 +41,31 @@ setup:
         action: createaccount
         format: json
       form-data:
-        username: p/var: name
+        username: p/var: name # from the fixture's local context
         password: p/var: password
         retype: p/var: password
         email: p/var: email
-        creationtoken: p/var: token # from above
+        creationtoken: p/var: creation-token # from the RootUser's context, see above
     response:
       body:
         creataccount:
           status: PASS
+
+  # Add to bot group
+  - use-session: RootUser # use the root user's session, not the session created above
+    request:
+      path: api.php
+      parameters:
+        action: userrights
+        format: json
+      form-data:
+        user: p/var: name
+        token: p/var: rights-token # from the RootUser session context
+        add: bot
+    response:
+      body:
+        userrights:
+          added: [ 'bot' ]
 
   # Get a login token (using the new session created above)
   - request:
@@ -60,7 +79,7 @@ setup:
       body:
         query:
           tokens:
-            login: p/grab: token # grab the value and store is as a local variable
+            login: p/grab: token # from the RootUser session context
 
   # Log in (using the new session created above)
   - request:

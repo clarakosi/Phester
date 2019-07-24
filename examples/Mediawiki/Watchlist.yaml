@@ -7,17 +7,17 @@ use-fixtures:
   - Alice
   - Bob
 
-# templates all parts of the request/response pair to be reused.
-templates:
+# all parts of the request/response pair (aka interaction step) to be reused.
+prototypes:
   edit:
-    - request:
+      request:
         method: post
         path: api.php
         parameters:
           action: edit
           format: json
         form-data:
-          token: p/var: Alice/edit-token # token must match session
+          token: p/var: /session/edit-token # take the token from the seesion context, not the local context
       response:
         body:
           edit:
@@ -27,15 +27,11 @@ tests:
   - description: "watch and unwatch"
 
     # Use Alice's session as the default for each request.
-    # Note that each test (not request) has a copy of each fixture session.
-    # If no fixture session is selected as the default, a local session with is created.
-    # Variables in the test's default context can be accessed with the prefix "default".
-    # Variables are evaluated in the context of the request's session.
-    # This also makes all variables from the Alice fixture available as if they were local.
+    # Equivalent to use-session: Alice in each step
     default-session: Alice
 
-    interation:
-    - template: edit
+    interaction:
+    - inherit: edit # inherit from prototype
       request:
         parameters:
           title: Foo
@@ -44,8 +40,8 @@ tests:
           comment: first edit
           text: Just a test
           watchlist: unwatch
-    - template: edit
-      use-session: Bob # this is a per-test, but not per-request, clone!
+    - inherit: edit # inherit from prototype
+      use-session: Bob # this is a per-test clone (shared by all requests in this test that use the Bob context)!
       request:
         parameters:
           title: Foo
@@ -54,7 +50,6 @@ tests:
           comment: second edit
           text: More testing
           watchlist: watch
-          token: p/var: Bob/edit-token # token must match session. Use the session (fixture) name as a prefix.
     - request:
           path: api.php
           parameters:
