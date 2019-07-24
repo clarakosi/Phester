@@ -1,0 +1,170 @@
+suite: Page Protection
+description: Test page protection levels and effectiveness
+type: RPC
+
+use-fixtures:
+  - Alice
+  - RootUser
+
+prototypes:
+  edit:
+    - request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+      response:
+        body:
+          edit:
+            result: Success
+
+setup:
+  # Get CSRF token for RootUser
+  - use-session: RootUser
+    request:
+      path: api.php
+      action: query
+      meta: tokens
+      format: json
+    response:
+      body:
+        query:
+          tokens:
+            csrftoken: p/grab: token
+  # Create Protected Page
+  - inherit: edit
+    use-session: RootUser
+    request:
+      parameters:
+        title: Protected Page
+        createonly: true
+      form-data:
+        summary: create page
+        text: Protected page
+        token: p/var: token
+  # Create Semi Protected Page
+  - inherit: edit
+    use-session: RootUser
+    request:
+      parameters:
+        title: Semi Protected Page
+        createonly: true
+      form-data:
+        summary: create page
+        text: Semi Protected page
+        token: p/var: token
+  # Add edit protections to only allow sysops to edit Protected Page
+  - use-session: RootUser
+    request:
+      method: post
+      path: api.php
+      form-data:
+        action: protect
+        title: Protected Page
+        token: p/var: token
+        protections: edit=sysop
+        format: json
+    response:
+      body:
+        protect:
+          title: Protected Page
+          protections:
+            edit: sysop
+            expiry: infinite
+  # Add edit protections to only allow auto confirmed users to edit Semi Protected Page
+  - use-session: RootUser
+    request:
+      method: post
+      path: api.php
+      form-data:
+        action: protect
+        title: Semi Protected Page
+        token: p/var: token
+        protections: edit=autoconfirmed
+        format: json
+    response:
+      body:
+        protect:
+          title: Semi Protected Page
+          protections:
+            edit: autoconfirmed
+            expiry: infinite
+
+tests:
+  - description: Root user should be able to edit Protected Page
+    interaction:
+      - inherit: edit
+        use-session: RootUser
+        request:
+          parameters:
+            title: Protected Page
+          form-data:
+            summary: test edit
+            text: Protected Page edited by RootUser
+            token: p/var: token
+  - description: Root user should be able to edit Semi Protected Page
+    interaction:
+      - inherit: edit
+        use-session: RootUser
+        request:
+          parameters:
+            title: Semi Protected Page
+          form-data:
+            summary: test edit
+            text: Semi Protected Page edited by RootUser
+            token: p/var: token
+  - description: Autoconfirmed user should not be able to edit Protected Page
+    interaction:
+      - inherit: edit
+        use-session: Alice
+        request:
+            parameters:
+              title: Protected Page
+            form-data:
+              summary: test edit
+              text: Protected Page edited by Alice
+              token: p/var: Alice/edit-token
+          response:
+            body:
+              code: protectedpage
+              info: This page has been protected to prevent editing or other actions.
+  - description: Autoconfirmed user should be able to edit Semi Protected Page
+    interaction:
+      - inherit: edit
+        use-session: Alice
+        request:
+          parameters:
+            title: Semi Protected Page
+          form-data:
+            summary: test edit
+            text: Semi Protected Page edited by Alice
+            token: p/var: Alice/edit-token
+  - description: Anonymous user should not be able to edit Protected Page
+    interaction:
+      - inherit: edit
+        request:
+            parameters:
+              title: Protected Page
+            form-data:
+              summary: test edit
+              text: Protected Page edited by Anonymous
+              token: +\
+          response:
+            body:
+              code: protectedpage
+              info: This page has been protected to prevent editing or other actions.
+  - description: Anonymous user should not be able to edit Semi Protected Page
+    interaction:
+      - inherit: edit
+        request:
+            parameters:
+              title: Semi Protected Page
+            form-data:
+              summary: test edit
+              text: Semi Protected Page edited by Anonymous
+              token: +\
+          response:
+            body:
+              code: protectedpage
+              info: This page has been protected to prevent editing or other actions.
