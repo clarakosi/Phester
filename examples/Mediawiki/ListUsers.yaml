@@ -1,0 +1,28 @@
+suite: Listing Users
+description: Use API:Allusers to list all users
+type: RPC
+
+use-fixtures:
+  - Alice
+  - Bob
+  - RootUser
+
+tests:
+  - description: Get a list of all registered users
+    interaction:
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            list: allusers
+            format: json
+        response:
+          body:
+            query:
+              allusers:
+                - userid: p/var: Alice/id
+                  name: p/var: Alice/name
+                - userid: p/var: Bob/id
+                  name: p/var: Bob/name
+                - userid: p/var: RootUser/id
+                  name: p/var: Rootuser/name
