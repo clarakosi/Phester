@@ -1,0 +1,89 @@
+suite: Diff Compare with Variables
+description: Use variables to get the difference between revisions
+type: RPC
+
+# Use the Alice fixture to use the session for the user
+use-fixtures:
+  - Alice
+
+tests:
+  - description: Create and edit page a few times then compare revisions
+    default-session: Alice
+    interaction:
+      # create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Diff Compare
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Counting 1
+            token: p/var: Alice/edit-token
+        response:
+          body:
+            edit:
+              result: Success
+              newrevid: p/grab: revision1
+      # edit page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Diff Compare
+            format: json
+          form-data:
+            summary: Revision 2
+            text: Counting 1 2
+            token: p/var: Alice/edit-token
+        response:
+          body:
+            edit:
+              result: Success
+      # edit page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Diff Compare
+            format: json
+          form-data:
+            summary: Revision 3
+            text: Counting 1 2 3
+            token: p/var: Alice/edit-token
+        response:
+          body:
+            edit:
+              result: Success
+      # edit page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Diff Compare
+            format: json
+          form-data:
+            summary: Revision 4
+            text: Counting 1 2 3 4
+            token: p/var: Alice/edit-token
+        response:
+          body:
+            edit:
+              result: Success
+              newrevid: p/grab: revision4
+      # compare revisions page
+      - request:
+          path: api.php
+          parameters:
+            action: compare
+            fromrev: p/var: revision1
+            torev: p/var: revision4
+            format: json
+        response:
+          body: !pcre/pattern: /<ins class=\\"diffchange diffchange-inline\\">2 3 4<\/ins>./
