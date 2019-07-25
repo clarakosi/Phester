@@ -1,0 +1,130 @@
+# This should probably me merged with the Autopatrolling suite.
+# Separate tests, but same suite.
+suite: Autopatrolling
+description: Testing default autopatrolling rights
+type: RPC
+
+use-fixtures:
+  - Alice
+  - Mindy
+
+prototypes:
+  edit:
+      request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+        form-data:
+          token: p/var: /session/edit-token
+      response:
+        body:
+          edit:
+            result: Success
+            revid: p/grab: revid
+  rc:
+      use-session: Mindy # you need patroller rights to see patrol flags
+      request:
+          path: api.php
+          parameters:
+            action: query
+            list: recentchanges
+            rctitle: p/var: title
+            rcprop: patrolled
+            format: json
+
+  # Get a patrol token
+  patrol-token:
+   request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: patrol
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            patrol: p/grab: patrol-token
+
+  # Do patrol
+  patrol-token:
+   request:
+      path: api.php
+      parameters:
+        action: patrol
+        revid: p/var: revid
+        format: json
+      form-data:
+        token: p/var: patrol-token
+    response:
+      body:
+        error: p/not-exists
+
+tests:
+  - description: sysops can patrol
+    variables:
+      title: p/uniq: "Patrol_"
+    interaction:
+      # Create page
+      - inherit: edit
+        use-session: Alice
+        request:
+          parameters:
+            title: p/var: title
+            createonly: true
+          form-data:
+            summary: create page
+            text: Patrol this!
+
+      # Alice can't patrol
+      - inherit: patrol-token
+        use-session: Alice
+      
+      - inherit: patrol
+        use-session: Alice
+        response:
+          body:
+            error:
+              code: permissiondenied
+
+      # Confirm edit is NOT patrolled
+      - inherit: rc
+        response:
+          body:
+            query:
+              recentchanges:
+                - type: new
+                  patrolled: p/not-exist # this will need some special handling!
+                  autopatrolled: p/not-exist # this will need some special handling!
+
+      # Mindy can patrol
+      - inherit: patrol-token
+        use-session: Mindy
+      
+      - inherit: patrol
+        use-session: Mindy
+        response:
+          body:
+            error:
+              code: permissiondenied
+
+      # Confirm edit is now patrolled
+      - inherit: rc
+        response:
+          body:
+            query:
+              recentchanges:
+                - type: new
+                  patrolled: ""
+                  autopatrolled: ""
+
+      # Alice can't see patrol flags
+      - inherit: rc
+        use-session: Alice
+        response:
+          body:
+            error:
+              code: permissiondenied
