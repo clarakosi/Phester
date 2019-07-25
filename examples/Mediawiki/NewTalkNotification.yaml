@@ -1,0 +1,43 @@
+suite: New Talk Notification
+description: Testing notification from a new talk page comment
+type: RPC
+
+use-fixtures:
+  - Alice
+  - Bob
+
+tests:
+  - description: User should get a new message notification from a talk page edit
+    interaction:
+      # Edit Bob's talk page
+      - use-session: Alice
+        request:
+            method: post
+            path: api.php
+            parameters:
+              action: edit
+              title: User_talk:Bob
+              format: json
+            form-data:
+              text: Hi, Bob ~~~~
+              token: p/var: Alice/edit-token
+          response:
+            body:
+              edit:
+                result: Success
+      # Check if Bob has any messages
+      - use-session: Bob
+        request:
+            path: api.php
+            parameters:
+              action: query
+              title: userinfo
+              uiprop: hasmsg
+              format: json
+          response:
+            body:
+              query:
+                userinfo:
+                  id: p/var: Bob/id
+                  name: p/var: Bob/name
+                  messages: ""

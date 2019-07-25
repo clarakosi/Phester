@@ -1,0 +1,56 @@
+suite: Autopatrolling
+description: Testing default autopatrolling rights
+type: RPC
+
+use-fixtures:
+  - RootUser
+
+tests:
+  - description: Root user's edit should automatically be marked as patrolled
+    default-session: RootUser
+    interaction:
+      # Get edit token
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            meta: tokens
+            format: json
+        response:
+          body:
+            query:
+              tokens:
+                csrftoken: p/grab: edit-token
+      # Create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Autopatrolling
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Is this page autopatrolled?
+            token: p/var: edit-token
+        response:
+          body:
+            edit:
+              result: Success
+      # Confirm page was autopatrolled
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            list: recentchanges
+            rctitle: Autopatrolling
+            rcprop: patrolled
+            format: json
+        response:
+          body:
+            query:
+              recentchanges:
+                - type: new
+                  patrolled: ""
+                  autopatrolled: ""

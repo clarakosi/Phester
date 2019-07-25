@@ -1,0 +1,60 @@
+suite: Site Statisitics
+description: Testing site statistics' edits value
+type: RPC
+
+use-fixtures:
+  - Alice
+
+tests:
+  - description: Edit value should increase in site statistics after editing a page
+    default-session: Alice
+    retry:
+      tries: 3
+    interaction:
+      # Get site statistics
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            meta: siteinfo
+            siprop: statistics
+            format: json
+        response:
+          body:
+            query:
+              statistics:
+                edits: p/grab: edits-stats
+      # Create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: Site Statistics
+#            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Will site statistics increase?
+            token: p/var: edit-token
+        response:
+          body:
+            edit:
+              result: Success
+      # Get site statistics
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            meta: siteinfo
+            siprop: statistics
+            format: json
+        response:
+          body:
+            query:
+              statistics:
+                # p/greater: function that checks to see if the current number is greater than the given number
+                #
+                # What happens if a parallel test undos/reverts edits? Should it be greater than or equal?
+                # Might be a good candidate for retry. I've added retry to the entire sequence.
+                edits: p/greater: p/var: edits-stats
