@@ -15,23 +15,6 @@ variables:
   password: p/uniq: "pw-"
 
 setup:
-  # Get a createaccount token for the root user
-  - use-session: RootUser # use the root user's session, not the session created above
-    request:
-      path: api.php
-      parameters:
-        action: query
-        meta: tokens
-        type: createaccount|rights
-        format: json
-    response:
-      body:
-        query:
-          tokens:
-            # grab values and store them in variables in
-            # the local copy of the RootUser's session context
-            createaccount: p/grab: creation-token
-            userrights: p/grab: rights-token
 
   # Create a new user account
   - use-session: RootUser # use the root user's session, not the session created above
@@ -45,13 +28,13 @@ setup:
         password: p/var: password
         retype: p/var: password
         email: p/var: email
-        creationtoken: p/var: creation-token # from the RootUser's context, see above
+        creationtoken: p/var: RootUser/creataccount-token # from the RootUser's context, see above
     response:
       body:
         creataccount:
           status: PASS
 
-  # Add to bot group
+  # Add to sysop group
   - use-session: RootUser # use the root user's session, not the session created above
     request:
       path: api.php
@@ -60,7 +43,7 @@ setup:
         format: json
       form-data:
         user: p/var: name
-        token: p/var: rights-token # from the RootUser session context
+        token: p/var: RootUser/rights-token # from the RootUser session context
         add: sysop
     response:
       body:

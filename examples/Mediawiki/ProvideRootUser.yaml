@@ -37,3 +37,18 @@ setup:
           result: "Success"
           lguserid: p/grab: id # grabbed variables are stored in the session context
           lgusername: p/grab: name
+
+  # Get tokens
+  - request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: createaccount|rights
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            createaccount: p/grab: creataccount-token
+            rights: p/grab: rights-token

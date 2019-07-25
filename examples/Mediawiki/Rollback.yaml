@@ -29,7 +29,7 @@ prototypes:
             result: Success
 
 tests:
-  - description: "watch and unwatch"
+  - description: "Rollback"
 
     variables:
       title: p/uniq: "Rollback_"

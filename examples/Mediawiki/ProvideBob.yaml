@@ -15,20 +15,6 @@ variables:
   password: p/uniq: "pw-"
 
 setup:
-  # Get a createaccount token for the root user
-  - use-session: RootUser # use the root user's session, not the session created above
-    request:
-      path: api.php
-      parameters:
-        action: query
-        meta: tokens
-        type: createaccount
-        format: json
-    response:
-      body:
-        query:
-          tokens:
-            createaccount: p/grab: token # grab the value and store is as a local variable
 
   # Create a new user account
   - use-session: RootUser # use the root user's session, not the session created above
@@ -42,7 +28,7 @@ setup:
         password: p/var: password
         retype: p/var: password
         email: p/var: email
-        creationtoken: p/var: token # from above
+        creationtoken: p/var: RootUser/creataccount-token
     response:
       body:
         creataccount:

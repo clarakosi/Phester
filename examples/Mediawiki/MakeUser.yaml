@@ -1,20 +1,33 @@
-fixture: Alice
+# This demonstrates the "resource" feature, similar to fixtures.
+# See T228889
+
+resource: User
 description: Creates a user and logs them in
 type: RPC
 
 use-fixtures:
   - RootUser
 
-# Variables to be made available to tests.
-# Variables are stored in the session context associated with the fixture.
-export: [ "name", "email", "id", "edit-token" ]
-
 variables:
-  name: "Alice"
-  email: "alice@example"
+  name: p/uniq: "User_"
+  email: p/uniq: "bob@example"
   password: p/uniq: "pw-"
 
 setup:
+  # Get a createaccount token for the root user
+  - use-session: RootUser # use the root user's session, not the session created above
+    request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: createaccount
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            createaccount: p/grab: token # grab the value and store is as a local variable
 
   # Create a new user account
   - use-session: RootUser # use the root user's session, not the session created above
@@ -28,7 +41,7 @@ setup:
         password: p/var: password
         retype: p/var: password
         email: p/var: email
-        creationtoken: p/var: RootUser/creataccount-token
+        creationtoken: p/var: token # from above
     response:
       body:
         creataccount:
