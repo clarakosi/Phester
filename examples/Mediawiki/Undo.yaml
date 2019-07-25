@@ -1,0 +1,74 @@
+suite: Undo
+description: Testing undo functionality
+type: RPC
+
+use-fixtures:
+  - Alice
+
+prototypes:
+  edit:
+    - request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+      response:
+        body:
+          edit:
+            result: Success
+
+tests:
+  - description: Undo should delete an edit
+    default-session: Alice
+    interaction:
+      # Create page
+      - inherit: edit
+        request:
+          parameters:
+            title: Undo Page
+            createonly: true
+          form-data:
+            summary: create page
+            text: 1
+            token: p/var: Alice/edit-token
+      # Edit page
+      - inherit: edit
+        request:
+          parameters:
+            title: Undo Page
+          form-data:
+            summary: edit page
+            text: 1 2
+            token: p/var: Alice/edit-token
+      # Edit page
+      - inherit: edit
+        request:
+            parameters:
+              title: Undo Page
+            form-data:
+              summary: edit page
+              text: 1 2 4
+              token: p/var: Alice/edit-token
+          response:
+            body:
+              edit:
+                result: Success
+                newrevid: p/grab: undo-revision
+      # Undo last commit
+      - inherit: edit
+        request:
+          parameters:
+            title: Undo Page
+          form-data:
+            undo: p/var: undo-revision
+            token: p/var: Alice/edit-token
+      # Parse page and confirm undo
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: Undo Page
+            format: json
+        response:
+          body: !pcre/pattern: /<p>1 2\\n<\/p>/
