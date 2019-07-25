@@ -12,6 +12,7 @@ type: RPC
 use-fixtures:
   - Alice
   - Robby
+  - Mindy
 
 tests:
   - description: Create, edit, and delete a page
@@ -76,14 +77,15 @@ tests:
           body: !pcre/pattern: /Editing a test page for phester/
 
       # delete and check that it's gone
-      - request:
+      - use-session: Mindy
+        request:
           method: post
           path: api.php
           form-data:
             action: delete
             title: phester
             format: json
-            token: +\
+            token: p/var: Mindy/deletion-token
         response:
           headers:
             content-type: !pcre/pattern: /application\/json/
@@ -101,8 +103,81 @@ tests:
             error:
               code: "missingtitle"
 
-  - description: check bot flag is applied correctly
+  - description: Create, delete, undelete a page
+    interaction:
 
+      # create 
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: UndeletionTest
+            createonly: true
+            format: json
+          form-data:
+            summary: phester test
+            text: A test page for phester
+            token: +\
+        response:
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body:
+            edit:
+              result: Success
+
+
+      # delete and check that it's gone
+      - use-session: Mindy
+        request:
+          method: post
+          path: api.php
+          form-data:
+            action: delete
+            title: UndeletionTest
+            format: json
+            token: p/var: Mindy/deletion-token
+        response:
+          body:
+            delete:
+              title: UndeletionTest
+      - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: UndeletionTest
+            format: json
+        response:
+          body:
+            error:
+              code: "missingtitle"
+
+      # undelete and check that the page is accessible again
+       - use-session: Mindy
+        request:
+          method: post
+          path: api.php
+          form-data:
+            action: undelete
+            title: UndeletionTest
+            format: json
+            token: p/var: Mindy/deletion-token
+        response:
+          body:
+            undelete:
+              title: UndeletionTest
+     - request:
+          path: api.php
+          parameters:
+            action: parse
+            page: UndeletionTest
+            format: json
+        response:
+          headers:
+            content-type: !pcre/pattern: /application\/json/
+          body: !pcre/pattern: /A test page for phester/
+          
+  - description: check bot flag is applied correctly
 	# use a unique page title
     variables:
       title: p/uniq: "BotFlagTest_"

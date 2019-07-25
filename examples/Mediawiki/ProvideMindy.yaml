@@ -88,11 +88,12 @@ setup:
       parameters:
         action: query
         meta: tokens
-        type: csrf
+        type: csrf|deletion
         format: json
     response:
       body:
         query:
           tokens:
             csrf: p/grab: edit-token
+            deletion: p/grab: deletion-token
 
