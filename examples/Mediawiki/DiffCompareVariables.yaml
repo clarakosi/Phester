@@ -6,78 +6,87 @@ type: RPC
 use-fixtures:
   - Alice
 
+variables:
+  title: p/uniq: "DiffCompare_"
+
+prototypes:
+  edit:
+    - request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          title: p/var: title
+          format: json
+        form-data:
+          token: p/var: Alice/edit-token
+      response:
+        body:
+          edit:
+            result: Success
+
 tests:
   - description: Create and edit page a few times then compare revisions
     default-session: Alice
     interaction:
       # create page
-      - request:
-          method: post
-          path: api.php
+      - inherit: edit
+        request:
           parameters:
-            action: edit
-            title: Diff Compare
             createonly: true
-            format: json
           form-data:
             summary: create page
-            text: Counting 1
-            token: p/var: Alice/edit-token
+            text: "
+              Counting:
+              * One
+            "
         response:
           body:
             edit:
               result: Success
               newrevid: p/grab: revision1
       # edit page
-      - request:
-          method: post
-          path: api.php
-          parameters:
-            action: edit
-            title: Diff Compare
-            format: json
+      - inherit: edit
+        request:
           form-data:
             summary: Revision 2
-            text: Counting 1 2
-            token: p/var: Alice/edit-token
-        response:
-          body:
-            edit:
-              result: Success
+            text: "
+              Counting:
+              * One
+              * Two
+            "
       # edit page
-      - request:
-          method: post
-          path: api.php
-          parameters:
-            action: edit
-            title: Diff Compare
-            format: json
+      - inherit: edit
+        request:
           form-data:
-            summary: Revision 3
-            text: Counting 1 2 3
-            token: p/var: Alice/edit-token
+            summary: Revision3
+            text: "
+              Counting:
+              * One
+              * Two
+              * Three
+            "
         response:
           body:
             edit:
               result: Success
+              newrevid: p/grab: revision3
       # edit page
-      - request:
-          method: post
-          path: api.php
-          parameters:
-            action: edit
-            title: Diff Compare
-            format: json
+      - inherit: edit
+        request:
           form-data:
             summary: Revision 4
-            text: Counting 1 2 3 4
-            token: p/var: Alice/edit-token
+            text: "
+              Counting:
+              * One
+              * Two
+            "
         response:
           body:
             edit:
               result: Success
               newrevid: p/grab: revision4
-      # compare revisions page
+      # compare revisions
       - request:
           path: api.php
           parameters:
@@ -86,4 +95,14 @@ tests:
             torev: p/var: revision4
             format: json
         response:
-          body: !pcre/pattern: /<ins class=\\"diffchange diffchange-inline\\">2 3 4<\/ins>./
+          body: !pcre/pattern: /<td class='diff-addedline'><div><ins class=\\"diffchange\\">* Two<\/ins>./
+      # compare revisions
+      - request:
+          path: api.php
+          parameters:
+            action: compare
+            fromrev: p/var: revision3
+            torev: p/var: revision4
+            format: json
+        response:
+          body: !pcre/pattern: /<td class='diff-deletedline'><div><del class=\\"diffchange\\">* Three<\/del>/

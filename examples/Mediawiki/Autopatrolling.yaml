@@ -2,38 +2,29 @@ suite: Autopatrolling
 description: Testing default autopatrolling rights
 type: RPC
 
+variables:
+  title: p/uniq: "Autopatrol_"
+
 use-fixtures:
-  - RootUser
+  - Mindy
 
 tests:
-  - description: Root user's edit should automatically be marked as patrolled
-    default-session: RootUser
+  - description: Admin's edit should automatically be marked as patrolled
+    default-session: Mindy
     interaction:
-      # Get edit token
-      - request:
-          path: api.php
-          parameters:
-            action: query
-            meta: tokens
-            format: json
-        response:
-          body:
-            query:
-              tokens:
-                csrftoken: p/grab: edit-token
       # Create page
       - request:
           method: post
           path: api.php
           parameters:
             action: edit
-            title: Autopatrolling
+            title: p/var: title
             createonly: true
             format: json
           form-data:
             summary: create page
             text: Is this page autopatrolled?
-            token: p/var: edit-token
+            token: p/var: Mindy/edit-token
         response:
           body:
             edit:
@@ -44,7 +35,7 @@ tests:
           parameters:
             action: query
             list: recentchanges
-            rctitle: Autopatrolling
+            rctitle: p/var: title
             rcprop: patrolled
             format: json
         response:

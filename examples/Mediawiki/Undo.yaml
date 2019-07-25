@@ -5,6 +5,9 @@ type: RPC
 use-fixtures:
   - Alice
 
+variables:
+  title: p/uniq: "Undo_"
+
 prototypes:
   edit:
     - request:
@@ -12,7 +15,10 @@ prototypes:
         path: api.php
         parameters:
           action: edit
+          title:  p/var: title
           format: json
+        form-data:
+          token: p/var: Alice/edit-token
       response:
         body:
           edit:
@@ -26,30 +32,34 @@ tests:
       - inherit: edit
         request:
           parameters:
-            title: Undo Page
             createonly: true
           form-data:
             summary: create page
-            text: 1
-            token: p/var: Alice/edit-token
+            text: "
+            Undo
+              * Foo
+            "
       # Edit page
       - inherit: edit
         request:
-          parameters:
-            title: Undo Page
           form-data:
             summary: edit page
-            text: 1 2
-            token: p/var: Alice/edit-token
+            text: "
+            Undo
+              * Foo
+              * Bar
+            "
       # Edit page
       - inherit: edit
         request:
-            parameters:
-              title: Undo Page
             form-data:
               summary: edit page
-              text: 1 2 4
-              token: p/var: Alice/edit-token
+            text: "
+            Undo
+              * Foo
+              * Bar
+              * Baz
+            "
           response:
             body:
               edit:
@@ -58,17 +68,14 @@ tests:
       # Undo last commit
       - inherit: edit
         request:
-          parameters:
-            title: Undo Page
           form-data:
             undo: p/var: undo-revision
-            token: p/var: Alice/edit-token
       # Parse page and confirm undo
       - request:
           path: api.php
           parameters:
             action: parse
-            page: Undo Page
+            page: p/var: title
             format: json
         response:
-          body: !pcre/pattern: /<p>1 2\\n<\/p>/
+          body: !pcre/pattern: /<p>Undo <\/p><ul><li>Foo<\/li>\\n<li>Bar<\/li><\/ul>/
