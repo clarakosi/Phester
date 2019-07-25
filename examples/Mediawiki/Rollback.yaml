@@ -1,0 +1,139 @@
+suite: Rollback
+description: Testing rollback functionality
+type: RPC
+
+# Makes the sessions from the Mindy and Bob fixtures available by name
+use-fixtures:
+  - Alice
+  - Bob
+  - Mindy
+
+# All parts of the request/response pair (aka interaction step) to be reused.
+# We'll probably see this one a lot. Can we safely/sanely share prototypes
+# between test suites somehow? 
+prototypes:
+  edit:
+      request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+          title: p/var: title
+        form-data:
+          token: p/var: /session/edit-token # take the token from the seesion context, not the local context
+          comment: testing
+      response:
+        body:
+          edit:
+            result: Success
+
+tests:
+  - description: "watch and unwatch"
+
+    variables:
+      title: p/uniq: "Rollback_"
+
+    interaction:
+
+    # Alice creates the page
+    - inherit: edit
+      use-session: Alice
+      request:
+        form-data:
+          text: First
+          createonly: true
+       response:
+        body:
+          pageid: p/grab: pageid
+         
+    # Bob edits
+    - inherit: edit
+      use-session: Bob
+      request:
+        form-data:
+          text: Second
+          
+    # Alice edits again
+    - inherit: edit
+      use-session: Alice
+      request:
+        form-data:
+          text: Third
+      response:
+        body:
+          newrevid: p/grab: revid
+          
+    # Bob edits a second time
+    - inherit: edit
+      use-session: Bob
+      request:
+        form-data:
+          text: Forth
+          
+    # Bob edits a third time
+    - inherit: edit
+      use-session: Bob
+      request:
+        form-data:
+          text: Fivth
+      response:
+        body:
+          newrevid: p/grab: revid5
+
+    # Mindy reverts
+    - request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: rollback
+        format: json
+      response:
+        body:
+          query:
+            tokens:
+              csrf: p/grab: rollback-token
+    - request:
+          path: api.php
+          parameters:
+            action: rollback
+            title: p/var: title
+            user: p/var: Bob/name
+        form-data:
+            token: p/var: rollback-token
+            summary: revert test vandalism
+      response:
+          body:
+            rollback:
+              title: p/var: title
+              old_revid: p/var: revid5
+              last_revid: p/var: revid3
+              revid: p/grab: newrevid
+
+    # Check page content
+    # This is pretty annoying, especially because of the complicated structure of the result.
+    # This should be a lot simpler with the new REST API, but we can't use that here.
+    # How could we reduce the pain of this, without custom code or anything MediaWiki specific in Phester?
+    # The need for bolierplate makes testers sad...
+    - request:
+        path: api.php
+        parameters:
+          action: query
+          prop: revisions
+          titles:
+          rvslots: main
+          rvprop: user|comment|content
+          format: json
+        response:
+          body:
+            query:
+              pages:
+                "$pageid": # we are using a variable in a key here. Magic syntax is our only hope...
+                  revisions:
+                    - user: Mindy/name
+                      slots:
+                        main:
+                          "*": Third # content we reverted to
+                      comment: p/regex: /revert test vandalism/
+

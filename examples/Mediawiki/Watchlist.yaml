@@ -45,7 +45,6 @@ tests:
       request:
         parameters:
           title: Foo
-          createonly: true
         form-data:
           comment: second edit
           text: More testing

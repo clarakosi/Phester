@@ -1,5 +1,5 @@
-fixture: Robby
-description: Creates a bit user and logs them in
+fixture: Mindy
+description: Creates an admin user and logs them in
 type: RPC
 
 use-fixtures:
@@ -10,8 +10,8 @@ use-fixtures:
 export: [ "name", "email", "id", "edit-token" ]
 
 variables:
-  name: "Robby"
-  email: "robby@example"
+  name: "Mindy"
+  email: "mindy@example"
   password: p/uniq: "pw-"
 
 setup:
@@ -61,11 +61,11 @@ setup:
       form-data:
         user: p/var: name
         token: p/var: rights-token # from the RootUser session context
-        add: bot
+        add: sysop
     response:
       body:
         userrights:
-          added: [ 'bot' ]
+          added: [ 'sysop' ]
 
   # Get a login token (using the new session created above)
   - request:
