@@ -151,7 +151,7 @@ class TestSuite {
 
 		if ( $pathVar instanceof Instructions ) {
 			$arr = $pathVar->asArray();
-			$path = $this->urlEncode( $path, $arr );
+			$path = $this->encodePathVars( $path, $arr );
 		}
 		$method = $request->getLowerCase( 'method', 'get' );
 		$payload = [];
@@ -193,7 +193,7 @@ class TestSuite {
 	 * @param array $pathVar
 	 * @return mixed
 	 */
-	private function urlEncode( $path, $pathVar ) {
+	private function encodePathVars( $path, $pathVar ) {
 		$pathVar = array_map( function ( $value ) {
 				return urlencode( $value );
 		}, $pathVar );
