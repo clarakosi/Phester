@@ -3,26 +3,72 @@ description: Use API:Allusers to list all users
 type: RPC
 
 use-fixtures:
-  - Alice
-  - Bob
   - RootUser
 
+variables:
+  prefix: "{{#random:8}}"
+  user1-name: p/uniq: "{{prefix}}"
+  user1-email: "{{user1-name}}@example.com"
+  user1-password: p/uniq: "pw-"
+  user2-name: p/uniq: "{{prefix}}"
+  user2-email: "{{user2-name}}@example.com"
+  user2-password: p/uniq: "pw-"
+  user3-name: p/uniq: "{{prefix}}"
+  user3-email: "{{user3-name}}@example.com"
+  user3-password: p/uniq: "pw-"
+
+prototypes:
+  createaccount:
+    - request:
+        path: api.php
+        parameters:
+          action: createaccount
+          format: json
+        form-data:
+          creationtoken: RootUser/createaccount-token
+      response:
+        body:
+          createaccount:
+            status: PASS
+
+setup:
+  # Create new users
+  - inherit: createaccount
+    use-session: RootUser
+    request:
+      form-data:
+        username: p/var: user1-name
+        password: p/var: user1-password
+        retype: p/var: user1-password
+        email: p/var: user1-email
+  - inherit: createaccount
+    use-session: RootUser
+    request:
+      form-data:
+        username: p/var: user2-name
+        password: p/var: user2-password
+        retype: p/var: user2-password
+        email: p/var: user2-email
+  - inherit: createaccount
+    use-session: RootUser
+    request:
+      form-data:
+        username: p/var: user3-name
+        password: p/var: user3-password
+        retype: p/var: user3-password
+        email: p/var: user3-email
+
 tests:
-  - description: Get a list of all registered users
+  - description: Get a list of registered users that begin with specified prefix
     interaction:
       - request:
           path: api.php
           parameters:
             action: query
             list: allusers
+            auprefix: p/var: prefix
             format: json
         response:
           body:
             query:
-              allusers:
-                - userid: p/var: Alice/id
-                  name: p/var: Alice/name
-                - userid: p/var: Bob/id
-                  name: p/var: Bob/name
-                - userid: p/var: RootUser/id
-                  name: p/var: Rootuser/name
+              allusers: p/min-list-size: 3
