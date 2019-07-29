@@ -1,5 +1,5 @@
 fixture: Robby
-description: Creates a bit user and logs them in
+description: Creates a bot user and logs them in
 type: RPC
 
 use-fixtures:
