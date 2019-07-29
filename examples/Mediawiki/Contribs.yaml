@@ -1,0 +1,90 @@
+suite: Contribs
+description: List user contributions
+type: RPC
+
+# Create a fresh user account, to avoid interference from other
+# tests using the same user account to create pages while this
+# test is running.
+# See (T228889) for the semantics of make-resources.
+make-resources:
+  - Laura: User
+
+# All parts of the request/response pair (aka interaction step) to be reused.
+# We'll probably see this one a lot. Can we safely/sanely share prototypes
+# between test suites somehow? 
+prototypes:
+  edit:
+      use-session: Laura
+      request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+          title: p/var: title
+        form-data:
+          token: p/var: /session/edit-token # take the token from the seesion context, not the local context
+          comment: testing
+      response:
+        body:
+          edit:
+            result: Success
+
+tests:
+  - description: "user contributions"
+
+    variables:
+      title: p/uniq: "Contrib_"
+
+    interaction:
+
+    - inherit: edit
+      request:
+        form-data:
+          text: First
+          comment: First
+       response:
+        body:
+          pageid: p/grab: pageid
+          newrevid: p/grab: rev1
+         
+    - inherit: edit
+      request:
+        form-data:
+          text: Second
+          comment: Second
+       response:
+        body:
+          newrevid: p/grab: rev2
+         
+    - inherit: edit
+      request:
+        form-data:
+          text: Third
+          comment: Third
+       response:
+        body:
+          newrevid: p/grab: rev3
+
+    - request:
+        path: api.php
+        parameters:
+          action: query
+          list: usercontribs
+          ucuser: p/var: Laura/name
+          ucprop: ids|comment
+        response:
+          body:
+            query:
+              usercontribs:
+              - revid: p/var: rev3
+                comment: Third
+              - revid: p/var: rev2
+                comment: Second
+              - revid: p/var: rev1
+                comment: First
+
+
+# TODO:
+# test filters
+# test paging

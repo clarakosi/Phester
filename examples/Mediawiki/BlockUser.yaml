@@ -1,0 +1,118 @@
+suite: User blocking
+description: Tests that user can't edit once they are blocked
+type: RPC
+
+use-fixtures:
+  - Mindy
+
+# Assume we have consumable resource creation, see T228889.
+# We must not use a fixture user for this test, since that may
+# break tests that run in parallel and use the same fixture user.
+# Without support for resource creation, the same can be achived by 
+# bunch of boiler plate for user creation in the setup section.
+make-resource:
+  - Eve: User # defined in MakeUser.yaml
+
+prototypes:
+  edit:
+    - use-session: Eve
+      request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+        form-data:
+          token: /session/edit-token
+setup:
+  # Get a token
+  - use-session: Mindy
+    request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: csrf
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            csrf: p/grab: csrf-token
+
+tests:
+  - description: Ensure Eve can be blocked and unblocked
+    variables:
+      title: p/uniq: BlockUser_
+    interaction:
+      # Eve can edit
+      - inherit: edit
+        request:
+          parameters:
+            title: p/var: title
+          form-data:
+            summary: test edit one
+            text: Can edit
+        response:
+          edit:
+            result: Success
+
+      # Mindy blocks
+      # NOTE: autoblocks can't be tested unless we have a way to
+      # fake our IP address.
+      # This could be done with an X-Forwarded-For header if the
+      # server is set up to trust these.
+      - use-account: Mindy
+        request:
+          parameters:
+            action: block
+            user: Eve/name
+          form-data:
+            token: csrf-token
+            reason: testing
+        response:
+          edit:
+            result: Success
+            
+      # Eve can NOT edit
+      - inherit: edit
+        request:
+          parameters:
+            title: p/var: title
+          form-data:
+            summary: test edit two
+            text: "Can I edit?"
+        response:
+          error:
+            code: permissiondenied
+
+      # Mindy unblocks
+      - use-account: Mindy
+        request:
+          parameters:
+            action: unblock
+            user: Eve/name
+          form-data:
+            token: csrf-tokeny
+            reason: testing
+        response:
+          edit:
+            result: Success
+
+      # Eve can edit
+      - inherit: edit
+        request:
+          parameters:
+            title: p/var: title
+          form-data:
+            summary: test edit three
+            text: "I can edit!"
+        response:
+          edit:
+            result: Success
+
+# TODO: test...
+# self-block
+# partial block
+# edit own user page
+# ...

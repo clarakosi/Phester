@@ -1,0 +1,82 @@
+fixture: Bob
+description: Creates a user and logs them in
+type: RPC
+
+use-fixtures:
+  - RootUser
+
+# Variables to be made available to tests.
+# Variables are stored in the session context associated with the fixture.
+export: [ "name", "email", "id", "edit-token" ]
+
+variables:
+  name: "Bob"
+  email: "bob@example.com"
+  password: p/uniq: "pw-"
+
+setup:
+
+  # Create a new user account
+  - use-session: RootUser # use the root user's session, not the session created above
+    request:
+      path: api.php
+      parameters:
+        action: createaccount
+        format: json
+      form-data:
+        username: p/var: name
+        password: p/var: password
+        retype: p/var: password
+        email: p/var: email
+        creationtoken: p/var: RootUser/creataccount-token
+    response:
+      body:
+        creataccount:
+          status: PASS
+
+  # Get a login token (using the new session created above)
+  - request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: login
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            login: p/grab: token # grab the value and store is as a local variable
+
+  # Log in (using the new session created above)
+  - request:
+      method: post
+      path: api.php
+      parameters:
+        action: login
+        format: json
+      form-data:
+        lgname: p/var: name
+        lgpassword: p/var: password
+        lgtoken: p/var: token
+    response:
+      body:
+        login:
+          result: "Success"
+          lguserid: p/grab: id
+          lgusername: p/grab: name
+
+  # Get an edit token (using the user's session)
+  - request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: csrf
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            csrf: p/grab: edit-token
+

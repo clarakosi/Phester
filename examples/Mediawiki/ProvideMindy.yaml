@@ -1,0 +1,99 @@
+fixture: Mindy
+description: Creates an admin user and logs them in
+type: RPC
+
+use-fixtures:
+  - RootUser
+
+# Variables to be made available to tests.
+# Variables are stored in the session context associated with the fixture.
+export: [ "name", "email", "id", "edit-token", "deletion-token" ]
+
+variables:
+  name: "Mindy"
+  email: "mindy@example.com"
+  password: p/uniq: "pw-"
+
+setup:
+
+  # Create a new user account
+  - use-session: RootUser # use the root user's session, not the session created above
+    request:
+      path: api.php
+      parameters:
+        action: createaccount
+        format: json
+      form-data:
+        username: p/var: name # from the fixture's local context
+        password: p/var: password
+        retype: p/var: password
+        email: p/var: email
+        creationtoken: p/var: RootUser/creataccount-token # from the RootUser's context, see above
+    response:
+      body:
+        creataccount:
+          status: PASS
+
+  # Add to sysop group
+  - use-session: RootUser # use the root user's session, not the session created above
+    request:
+      path: api.php
+      parameters:
+        action: userrights
+        format: json
+      form-data:
+        user: p/var: name
+        token: p/var: RootUser/rights-token # from the RootUser session context
+        add: sysop
+    response:
+      body:
+        userrights:
+          added: [ 'sysop' ]
+
+  # Get a login token (using the new session created above)
+  - request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: login
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            login: p/grab: token # from the RootUser session context
+
+  # Log in (using the new session created above)
+  - request:
+      method: post
+      path: api.php
+      parameters:
+        action: login
+        format: json
+      form-data:
+        lgname: p/var: name
+        lgpassword: p/var: password
+        lgtoken: p/var: token
+    response:
+      body:
+        login:
+          result: "Success"
+          lguserid: p/grab: id
+          lgusername: p/grab: name
+
+  # Get an edit token (using the user's session)
+  - request:
+      path: api.php
+      parameters:
+        action: query
+        meta: tokens
+        type: csrf|deletion
+        format: json
+    response:
+      body:
+        query:
+          tokens:
+            csrf: p/grab: edit-token
+            deletion: p/grab: deletion-token
+
