@@ -10,7 +10,7 @@ use-fixtures:
 
 variables:
   name: p/uniq: "User_"
-  email: p/uniq: "bob@example"
+  email: p/uniq: "somebody@example."
   password: p/uniq: "pw-"
 
 setup:

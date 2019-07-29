@@ -166,6 +166,7 @@ tests:
           body:
             undelete:
               title: UndeletionTest
+
      - request:
           path: api.php
           parameters:
@@ -178,7 +179,7 @@ tests:
           body: !pcre/pattern: /A test page for phester/
           
   - description: check bot flag is applied correctly
-	# use a unique page title
+    # use a unique page title
     variables:
       title: p/uniq: "BotFlagTest_"
       
@@ -236,7 +237,7 @@ tests:
             result: Success
             newrevid: p/grab: bot-edit-id
 
-	# check bot flags in RC feed
+    # check bot flags in RC feed
     - request:
           path: api.php
           parameters:
@@ -252,7 +253,7 @@ tests:
           body:
             query:
               recentchanges:
-				#note: newest first
+                #note: newest first
                 - revid: p/var: bot-edit
                   bot: ""
                 - revid: p/var: unflagged-edit

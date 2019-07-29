@@ -26,7 +26,7 @@ prototypes:
           token: /session/edit-token
 setup:
   # Get a token
-  - use-session: Mandy
+  - use-session: Mindy
     request:
       path: api.php
       parameters:
@@ -42,12 +42,14 @@ setup:
 
 tests:
   - description: Ensure Eve can be blocked and unblocked
+    variables:
+      title: p/uniq: BlockUser_
     interaction:
       # Eve can edit
       - inherit: edit
         request:
           parameters:
-            title: Protected Page
+            title: p/var: title
           form-data:
             summary: test edit one
             text: Can edit
@@ -55,12 +57,12 @@ tests:
           edit:
             result: Success
 
-      # Mandy blocks
+      # Mindy blocks
       # NOTE: autoblocks can't be tested unless we have a way to
       # fake our IP address.
       # This could be done with an X-Forwarded-For header if the
       # server is set up to trust these.
-      - use-account: Mandy
+      - use-account: Mindy
         request:
           parameters:
             action: block
@@ -76,7 +78,7 @@ tests:
       - inherit: edit
         request:
           parameters:
-            title: Protected Page
+            title: p/var: title
           form-data:
             summary: test edit two
             text: "Can I edit?"
@@ -84,8 +86,8 @@ tests:
           error:
             code: permissiondenied
 
-      # Mandy unblocks
-      - use-account: Mandy
+      # Mindy unblocks
+      - use-account: Mindy
         request:
           parameters:
             action: unblock
@@ -101,7 +103,7 @@ tests:
       - inherit: edit
         request:
           parameters:
-            title: Protected Page
+            title: p/var: title
           form-data:
             summary: test edit three
             text: "I can edit!"

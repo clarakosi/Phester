@@ -4,7 +4,7 @@ type: RPC
 
 # Variables to be made available to tests
 # Variables not listed here will be removed from the session context exported by this fixture.
-export: [ "name", "id" ]
+export: [ "name", "id", "creataccount-token", "rights-token" ]
 
 setup:
   # Get a login token

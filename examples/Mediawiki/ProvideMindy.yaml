@@ -7,11 +7,11 @@ use-fixtures:
 
 # Variables to be made available to tests.
 # Variables are stored in the session context associated with the fixture.
-export: [ "name", "email", "id", "edit-token" ]
+export: [ "name", "email", "id", "edit-token", "deletion-token" ]
 
 variables:
   name: "Mindy"
-  email: "mindy@example"
+  email: "mindy@example.com"
   password: p/uniq: "pw-"
 
 setup:

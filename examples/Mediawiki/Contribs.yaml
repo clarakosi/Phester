@@ -2,15 +2,19 @@ suite: Contribs
 description: List user contributions
 type: RPC
 
-use-fixtures:
-  - Alice
+# Create a fresh user account, to avoid interference from other
+# tests using the same user account to create pages while this
+# test is running.
+# See (T228889) for the semantics of make-resources.
+make-resources:
+  - Laura: User
 
 # All parts of the request/response pair (aka interaction step) to be reused.
 # We'll probably see this one a lot. Can we safely/sanely share prototypes
 # between test suites somehow? 
 prototypes:
   edit:
-      use-session: Alice
+      use-session: Laura
       request:
         method: post
         path: api.php
@@ -62,17 +66,12 @@ tests:
         body:
           newrevid: p/grab: rev3
 
-    # FIXME: this will only work if Alice is not making edits in
-    # another test in parallel. We'd need to create a dedicated user
-    # account just for this test to avoid that. Can be done in the
-    # setup, having support for resource creation would help a lot
-    # with that kind of thing (T228889).
     - request:
         path: api.php
         parameters:
           action: query
           list: usercontribs
-          ucuser: p/var: Alice/name
+          ucuser: p/var: Laura/name
           ucprop: ids|comment
         response:
           body:

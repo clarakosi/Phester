@@ -50,7 +50,7 @@ prototypes:
             patrol: p/grab: patrol-token
 
   # Do patrol
-  patrol-token:
+  patrol:
    request:
       path: api.php
       parameters:

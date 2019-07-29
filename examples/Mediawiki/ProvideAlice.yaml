@@ -11,7 +11,7 @@ export: [ "name", "email", "id", "edit-token" ]
 
 variables:
   name: "Alice"
-  email: "alice@example"
+  email: "alice@example.com"
   password: p/uniq: "pw-"
 
 setup:
