@@ -1,0 +1,157 @@
+suite: Page Protection
+description: Test page protection levels and effectiveness
+type: RPC
+
+use-fixtures:
+  - Alice
+  - Mindy
+
+variables:
+  protected: p/uniq: "Protected_"
+  semi-protected: p/uniq: "Semi_Protected_"
+
+prototypes:
+  edit:
+    - request:
+        method: post
+        path: api.php
+        parameters:
+          action: edit
+          format: json
+        form-data:
+          token: p/var: Mindy/edit-token
+      response:
+        body:
+          edit:
+            result: Success
+
+setup:
+  # Create Protected Page
+  - inherit: edit
+    use-session: Mindy
+    request:
+      parameters:
+        title: p/var: protected
+        createonly: true
+      form-data:
+        summary: create page
+        text: Protected page
+  # Create Semi Protected Page
+  - inherit: edit
+    use-session: Mindy
+    request:
+      parameters:
+        title: p/var: semi-protected
+        createonly: true
+      form-data:
+        summary: create page
+        text: Semi Protected page
+  # Add edit protections to only allow sysops to edit Protected Page
+  - use-session: Mindy
+    request:
+      method: post
+      path: api.php
+      form-data:
+        action: protect
+        title: p/var: protected
+        token: p/var: Mindy/edit-token
+        protections: edit=sysop
+        format: json
+    response:
+      body:
+        protect:
+          title: p/var: protected
+          protections:
+            edit: sysop
+            expiry: infinite
+  # Add edit protections to only allow auto confirmed users to edit Semi Protected Page
+  - use-session: Mindy
+    request:
+      method: post
+      path: api.php
+      form-data:
+        action: protect
+        title: p/var: semi-protected
+        token: p/var: Mindy/edit-token
+        protections: edit=autoconfirmed
+        format: json
+    response:
+      body:
+        protect:
+          title: p/var: semi-protected
+          protections:
+            edit: autoconfirmed
+            expiry: infinite
+
+tests:
+  - description: Admin should be able to edit Protected Page
+    interaction:
+      - inherit: edit
+        use-session: Mindy
+        request:
+          parameters:
+            title: p/var: protected
+          form-data:
+            summary: test edit
+            text: Protected Page edited by RootUser
+  - description: Admin should be able to edit Semi Protected Page
+    interaction:
+      - inherit: edit
+        use-session: Mindy
+        request:
+          parameters:
+            title: p/var: semi-protected
+          form-data:
+            summary: test edit
+            text: Semi Protected Page edited by RootUser
+  - description: Autoconfirmed user should not be able to edit Protected Page
+    interaction:
+      - inherit: edit
+        use-session: Alice
+        request:
+            parameters:
+              title: p/var: protected
+            form-data:
+              summary: test edit
+              text: Protected Page edited by Alice
+              token: p/var: Alice/edit-token
+          response:
+            body:
+              code: protectedpage
+  - description: Autoconfirmed user should be able to edit Semi Protected Page
+    interaction:
+      - inherit: edit
+        use-session: Alice
+        request:
+          parameters:
+            title: p/var: semi-protected
+          form-data:
+            summary: test edit
+            text: Semi Protected Page edited by Alice
+            token: p/var: Alice/edit-token
+  - description: Anonymous user should not be able to edit Protected Page
+    interaction:
+      - inherit: edit
+        request:
+            parameters:
+              title: p/var: protected
+            form-data:
+              summary: test edit
+              text: Protected Page edited by Anonymous
+              token: +\
+          response:
+            body:
+              code: protectedpage
+  - description: Anonymous user should not be able to edit Semi Protected Page
+    interaction:
+      - inherit: edit
+        request:
+            parameters:
+              title: p/var: semi-protected
+            form-data:
+              summary: test edit
+              text: Semi Protected Page edited by Anonymous
+              token: +\
+          response:
+            body:
+              code: protectedpage

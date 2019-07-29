@@ -1,0 +1,58 @@
+suite: Site Statisitics
+description: Testing site statistics' edits value
+type: RPC
+
+use-fixtures:
+  - Alice
+
+variables:
+  title: p/uniq: "SiteStats_"
+
+tests:
+  - description: Edit value should increase in site statistics after editing a page
+    default-session: Alice
+    interaction:
+      # Get site statistics
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            meta: siteinfo
+            siprop: statistics
+            format: json
+        response:
+          body:
+            query:
+              statistics:
+                edits: p/grab: edits-stats
+      # Create page
+      - request:
+          method: post
+          path: api.php
+          parameters:
+            action: edit
+            title: p/var: title
+            createonly: true
+            format: json
+          form-data:
+            summary: create page
+            text: Will site statistics increase?
+            token: p/var: edit-token
+        response:
+          body:
+            edit:
+              result: Success
+      # Get site statistics
+      - request:
+          path: api.php
+          parameters:
+            action: query
+            meta: siteinfo
+            siprop: statistics
+            format: json
+        response:
+          body:
+            query:
+              statistics:
+                # TODO: Flagged as a problematic case. How should we reference parameters for assertion functions?
+                edits: p/greater: { value: p/var: edit-stats }
